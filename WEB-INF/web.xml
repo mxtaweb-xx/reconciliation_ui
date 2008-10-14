@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<web-app
+        xmlns="http://java.sun.com/xml/ns/javaee"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+        version="2.5">
+
+    <servlet>
+        <servlet-name>PyServlet</servlet-name>
+        <servlet-class>org.python.util.PyServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+        <init-param>
+            <param-name>python.home</param-name>
+            <param-value>/Users/colin/dev/hadoop/thirdparty/jython</param-value>
+        </init-param>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>PyServlet</servlet-name>
+        <url-pattern>*.py</url-pattern>
+    </servlet-mapping>
+
+</web-app>
+
+
