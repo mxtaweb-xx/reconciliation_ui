@@ -6,17 +6,13 @@
         version="2.5">
 
     <servlet>
-        <servlet-name>PyServlet</servlet-name>
-        <servlet-class>org.python.util.PyServlet</servlet-class>
+        <servlet-name>QueryServlet</servlet-name>
+        <servlet-class>com.metaweb.reconservice.QueryServlet</servlet-class>
         <load-on-startup>1</load-on-startup>
-        <init-param>
-            <param-name>python.home</param-name>
-            <param-value>/Users/colin/dev/hadoop/thirdparty/jython</param-value>
-        </init-param>
     </servlet>
     <servlet-mapping>
-        <servlet-name>PyServlet</servlet-name>
-        <url-pattern>*.py</url-pattern>
+        <servlet-name>QueryServlet</servlet-name>
+        <url-pattern>/query</url-pattern>
     </servlet-mapping>
 
 </web-app>
