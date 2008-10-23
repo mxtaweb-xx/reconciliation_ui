@@ -1,0 +1,65 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <title>Reconciliation Service</title>
+</head>
+<body>
+<b>Reconciliation Service</b><p/>
+
+<textarea rows="20" cols="80" name="query"></textarea><br/>
+<button onclick="loadQuery('query',document.getElementsByName('query')[0].value)">Submit Query</button>
+<small>
+    <span onclick="document.getElementsByName('query')[0].value=oceanseleven">Ocean's Eleven</span>
+</small>
+<p/>
+<pre>
+<span id="result"/>
+</pre>
+
+<script type="text/javascript">
+    var oceanseleven = '{"/type/object/name":"Oceans Eleven", "/type/object/type":"/film/film","/film/film/starring/actor":"George Clooney"}'
+
+    var xmlhttp;
+    function loadQuery(url, query)
+    {
+        xmlhttp = null;
+        if (window.XMLHttpRequest)
+        {// code for Firefox, Opera, IE7, etc.
+            xmlhttp = new XMLHttpRequest();
+        }
+        else if (window.ActiveXObject)
+        {// code for IE6, IE5
+            xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        if (xmlhttp != null)
+        {
+            xmlhttp.onreadystatechange = state_Change;
+            xmlhttp.open("POST", url, true);
+            xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded")
+            xmlhttp.send("q=" + escape(query));
+        }
+        else
+        {
+            alert("Your browser does not support XMLHTTP.");
+        }
+    }
+
+    function state_Change()
+    {
+        if (xmlhttp.readyState == 4)
+        {// 4 = "loaded"
+            if (xmlhttp.status == 200)
+            {// 200 = "OK"
+                document.getElementById('result').innerHTML = xmlhttp.responseText;
+            }
+            else
+            {
+                alert("Problem retrieving data:" + xmlhttp.statusText);
+            }
+        }
+    }
+</script>
+
+</body>
+</html>
