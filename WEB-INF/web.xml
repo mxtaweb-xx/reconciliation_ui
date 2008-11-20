@@ -7,7 +7,7 @@
 
     <servlet>
         <servlet-name>QueryServlet</servlet-name>
-        <servlet-class>com.metaweb.reconservice.QueryServlet</servlet-class>
+        <servlet-class>com.metaweb.reconservice.svc.QueryServlet</servlet-class>
         <init-param>
             <param-name>index-location</param-name>
             <param-value>/Users/colin/dev/reconciliation_v2/index</param-value>
