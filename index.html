@@ -8,7 +8,8 @@
 <b>Reconciliation Service</b><p/>
 
 <textarea rows="20" cols="80" name="query"></textarea><br/>
-<button onclick="loadQuery('query',document.getElementsByName('query')[0].value)">Submit Query</button>
+Start: <input type="text" size="4" name="start"/> Limit: <input type="text" size="4" name="limit"/><br/>
+<button onclick="loadQuery()">Submit Query</button>
 <small>
     <span onclick="document.getElementsByName('query')[0].value=oceanseleven">Ocean's Eleven</span>
 </small>
@@ -21,8 +22,13 @@
     var oceanseleven = '{"/type/object/name":"Oceans Eleven", "/type/object/type":"/film/film","/film/film/starring/actor":"George Clooney"}'
 
     var xmlhttp;
-    function loadQuery(url, query)
+    function loadQuery()
     {
+        var url = 'query'
+        var query = document.getElementsByName('query')[0].value
+        var start = document.getElementsByName('start')[0].value
+        var limit = document.getElementsByName('limit')[0].value
+
         xmlhttp = null;
         if (window.XMLHttpRequest)
         {// code for Firefox, Opera, IE7, etc.
@@ -37,7 +43,10 @@
             xmlhttp.onreadystatechange = state_Change;
             xmlhttp.open("POST", url, true);
             xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded")
-            xmlhttp.send("q=" + escape(query));
+            var querystring = "q=" + escape(query)
+            if(start != undefined && start != '') querystring = querystring + "&start=" + start
+            if(limit != undefined && limit != '') querystring = querystring + "&limit=" + limit
+            xmlhttp.send(querystring);
         }
         else
         {
