@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+		<link rel="shortcut icon" type="image/ico" href="http://www.sprymedia.co.uk/media/images/favicon.ico" />
+		
+		<title>DataTables example</title>
+		<style type="text/css" title="currentStyle">
+			@import "media/css/demos.css";
+		</style>
+		<script type="text/javascript" language="javascript" src="media/js/jquery.js"></script>
+		<script type="text/javascript" language="javascript" src="media/js/jquery.dataTables.js"></script>
+		<script type="text/javascript" charset="utf-8">
+			$(document).ready(function() {
+				$('#demo').html( '<table cellpadding="0" cellspacing="0" border="0" class="display" id="example"></table>' );
+				$('#example').dataTable( {
+					"aaData": [
+						/* Reduced data set */
+						[ "Trident", "Internet Explorer 4.0", "Win 95+", 4, "X" ],
+						[ "Trident", "Internet Explorer 5.0", "Win 95+", 5, "C" ],
+						[ "Trident", "Internet Explorer 5.5", "Win 95+", 5.5, "A" ],
+						[ "Trident", "Internet Explorer 6.0", "Win 98+", 6, "A" ],
+						[ "Trident", "Internet Explorer 7.0", "Win XP SP2+", 7, "A" ],
+						[ "Gecko", "Firefox 1.5", "Win 98+ / OSX.2+", 1.8, "A" ],
+						[ "Gecko", "Firefox 2", "Win 98+ / OSX.2+", 1.8, "A" ],
+						[ "Gecko", "Firefox 3", "Win 2k+ / OSX.3+", 1.9, "A" ],
+						[ "Webkit", "Safari 1.2", "OSX.3", 125.5, "A" ],
+						[ "Webkit", "Safari 1.3", "OSX.3", 312.8, "A" ],
+						[ "Webkit", "Safari 2.0", "OSX.4+", 419.3, "A" ],
+						[ "Webkit", "Safari 3.0", "OSX.4+", 522.1, "A" ]
+					],
+					"aoColumns": [
+						{ "sTitle": "Engine" },
+						{ "sTitle": "Browser" },
+						{ "sTitle": "Platform" },
+						{ "sTitle": "Version", "sClass": "center", "sType": "numeric" },
+						{ "sTitle": "Grade",   "sClass": "center" }
+					]
+				} );	
+			} );
+		</script>
+	</head>
+	<body id="dt_example">
+		<div id="container">
+			<div class="full_width big">
+				<i>DataTables</i> dynamic creation example
+			</div>
+			
+			<h1>Preamble</h1>
+			<p>At times you will wish to be able to create a table from dynamic information passed directly to <i>DataTables</i>, rather than having it read from the document. This is achieved using the "aaData" array in the initialisation object. A table node must first be created before the initialiser is called (as shown in the code below). This is also useful for optimisation - if you are able to format the data as required, this method can save a lot of DOM parsing to create a table.</p>
+			
+			<h1>Live example</h1>
+			<div id="demo"></div>
+			<div class="spacer"></div>
+			
+			
+			<h1>Initialisation code</h1>
+			<pre>$(document).ready(function() {
+	$('#demo').html( '<table cellpadding="0" cellspacing="0" border="0" class="display" id="example"></table>' );
+	$('#example').dataTable( {
+		"aaData": [
+			/* Reduced data set */
+			[ "Trident", "Internet Explorer 4.0", "Win 95+", "4", "X" ],
+			[ "Trident", "Internet Explorer 5.0", "Win 95+", "5", "C" ],
+			[ "Trident", "Internet Explorer 5.5", "Win 95+", "5.5", "A" ],
+			[ "Trident", "Internet Explorer 6.0", "Win 98+", "6", "A" ],
+			[ "Trident", "Internet Explorer 7.0", "Win XP SP2+", "7", "A" ],
+			[ "Gecko", "Firefox 1.5", "Win 98+ / OSX.2+", "1.8", "A" ],
+			[ "Gecko", "Firefox 2", "Win 98+ / OSX.2+", "1.8", "A" ],
+			[ "Gecko", "Firefox 3", "Win 2k+ / OSX.3+", "1.9", "A" ],
+			[ "Webkit", "Safari 1.2", "OSX.3", "125.5", "A" ],
+			[ "Webkit", "Safari 1.3", "OSX.3", "312.8", "A" ],
+			[ "Webkit", "Safari 2.0", "OSX.4+", "419.3", "A" ],
+			[ "Webkit", "Safari 3.0", "OSX.4+", "522.1", "A" ]
+		],
+		"aoColumns": [
+			{ "sTitle": "Engine" },
+			{ "sTitle": "Browser" },
+			{ "sTitle": "Platform" },
+			{ "sTitle": "Version", "sClass": "center", "sType": "numeric" },
+			{ "sTitle": "Grade",   "sClass": "center" }
+		]
+	} );	
+} );</pre>
+			
+			
+			<h1>Other examples</h1>
+			<h2>Basic initialisation</h2>
+			<ul>
+				<li><a href="example_zero_config.html">Zero configuration</a></li>
+				<li><a href="example_filter_only.html">Feature enablement</a></li>
+				<li><a href="example_table_sorting.html">Sorting data</a></li>
+				<li><a href="example_multi_col_sort.html">Multi-column sorting</a></li>
+				<li><a href="example_multiple_tables.html">Multiple tables</a></li>
+				<li><a href="example_hidden_columns.html">Hidden columns</a></li>
+				<li><a href="example_language.html">Change language information (internationalisation)</a></li>
+				<li><a href="example_dom.html">DOM positioning</a></li>
+				<li><a href="example_alt_pagination.html">Alternative pagination styles</a></li>
+			</ul>
+			
+			<h2>Advanced initialisation</h2>
+			<ul>
+				<li><a href="example_column_render.html">Column rendering</a></li>
+				<li><a href="example_html_sort.html">Sorting without HTML tags</a></li>
+				<li><a href="example_row_callback.html">Row callback</a></li>
+				<li><a href="example_footer_callback.html">Footer callback</a></li>
+				<li><a href="example_language_file.html">Change language information from a file (internationalisation)</a></li>
+			</ul>
+			
+			<h2>API</h2>
+			<ul>
+				<li><a href="example_add_row.html">Dynamically add a new row</a></li>
+				<li><a href="example_dynamic_creation.html">Dynamically create a table</a></li>
+				<li><a href="example_multi_filter.html">Individual column filtering</a></li>
+				<li><a href="example_select_row.html">User selectable rows</a></li>
+			</ul>
+			
+			
+			<p>Please refer to the <a href="http://www.sprymedia.co.uk/article/DataTables"><i>DataTables</i> documentation</a> for full information about it's API properties and methods.</p>
+			
+			
+			<div id="footer" style="text-align:center;">
+				<span style="font-size:10px;">
+					DataTables &copy; Allan Jardine 2007-2008.<br>
+					Information in the table &copy; <a href="http://www.u4eatech.com">U4EA Technologies</a> 2007-2008.</span>
+			</div>
+		</div>
+	</body>
+</html>

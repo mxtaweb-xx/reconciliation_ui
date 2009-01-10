@@ -1,0 +1,62 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <title>Reconciliation Service</title>
+    <link rel="stylesheet" href="dataTables/media/css/demos.css" type="text/css" media="screen">
+    <link rel="stylesheet" href="jquery.ui/themes/cupertino/ui.all.css" type="text/css" media="screen" title="Cupertino">
+    <script type="text/javascript" language="javascript" src="json2.js"></script>
+    <script type="text/javascript" language="javascript" src="jquery.js"></script>
+    <script type="text/javascript" language="javascript" src="jquery.ui/ui/ui.core.js"></script>
+    <script type="text/javascript" language="javascript" src="jquery.ui/ui/ui.tabs.js"></script>
+    <script type="text/javascript" language="javascript" src="dataTables/media/js/jquery.dataTables.js"></script>
+    <script type="text/javascript" language="javascript" src="recon.js"></script>
+    <script type="text/javascript" language="javascript" charset="utf-8">
+        var currentRow = null;
+        var tabs;
+        var spreadSheetData;
+        var spreadSheetTable;
+
+        function handleNewSpreadsheet()
+        {
+            $('#spreadsheetDiv').html(
+                    '<table cellpadding="0" cellspacing="0" border="0" class="display" id="spreadsheetTable"/><br/><button onclick="reconcile()">Reconcile</button>');
+            spreadSheetData = parseSpreadsheet($('#spreadsheet')[0].value)
+            spreadSheetData["bAutoWidth"] = false
+            spreadSheetTable = $('#spreadsheetTable').dataTable(spreadSheetData)
+            tabs.tabs("select", 1);
+        }
+
+        $(document).ready(function() {
+            tabs = $("#tabs > ul");
+            tabs.tabs();
+            tabs.tabs("select", 0);
+        });
+    </script>
+</head>
+<body id="dt_example">
+    <div id="tabs" >
+        <ul>
+            <li><a href="#spreadsheetInput"><span>Load Spreadsheet</span></a></li>
+            <li><a href="#spreadsheetPreview"><span>Browse Data</span></a></li>
+            <li><a href="#spreadsheetReconcile"><span>Reconcile Record</span></a></li>
+        </ul>
+
+        <div id="spreadsheetInput" class="container">
+            <b>Copy your spreadsheet here:</b><br/>
+            <textarea rows="10" cols="80" name="spreadsheet" id="spreadsheet"></textarea><br/>
+            <button onclick="handleNewSpreadsheet()">Parse Spreadsheet</button>
+            <p/>
+        </div>
+
+        <div id="spreadsheetPreview" class="container">
+            <div id="spreadsheetDiv" class="container"> </div>
+        </div>
+
+        <div id="spreadsheetReconcile" class="container">
+
+        </div>
+    </div>
+</body>
+</html>
