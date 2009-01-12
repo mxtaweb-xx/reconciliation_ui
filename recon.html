@@ -16,7 +16,7 @@
         var currentRow = null;
         var currentManualReconRoad = null;
         var tabs;
-        var spreadSheetData;
+        var spreadSheetData = null;
         var spreadSheetTable;
         var currentReconRowId = -1;
 
@@ -25,6 +25,7 @@
             $('#spreadsheetDiv').html(
                     '<table cellpadding="0" cellspacing="0" border="0" class="display" id="spreadsheetTable"/><br/><button onclick="autoReconcile()">Auto-Reconcile</button>');
             spreadSheetData = parseSpreadsheet($('#spreadsheet')[0].value)
+            updateUnreconciledCount();
             spreadSheetData["bAutoWidth"] = false
             spreadSheetData["bSort"] = false
             spreadSheetTable = $('#spreadsheetTable').dataTable(spreadSheetData)
@@ -35,7 +36,8 @@
             tabs = $("#tabs > ul");
             tabs.tabs();
             tabs.bind("tabsselect", function(event, ui) {
-                if(ui.index == 2) manualReconcile()
+                if(ui.index == 2) manualReconcile();
+                else if (ui.index == 3) renderSpreadsheet();
             });
             tabs.tabs("select", 0);
         });
@@ -47,22 +49,31 @@
             <li><a href="#spreadsheetInput"><span>Load Spreadsheet</span></a></li>
             <li><a href="#spreadsheetPreview"><span>Browse Data</span></a></li>
             <li><a href="#spreadsheetReconcile"><span>Reconcile Record</span></a></li>
+            <li><a href="#spreadsheetRender"><span>Retrieve Spreadsheet</span></a></li>
         </ul>
 
         <div id="spreadsheetInput" class="container">
             <b>Copy your spreadsheet here:</b><br/>
-            <textarea rows="10" cols="80" name="spreadsheet" id="spreadsheet"></textarea><br/>
+            <textarea rows="15" cols="80" name="spreadsheet" id="spreadsheet"></textarea><br/>
             <button onclick="handleNewSpreadsheet()">Parse Spreadsheet</button>
             <button onclick="$('#spreadsheet').html(sampleData)">Sample Data</button>
             <p/>
         </div>
 
         <div id="spreadsheetPreview" class="container">
-            <div id="spreadsheetDiv" class="container"> </div>
+            <div class="unreconciledCount"></div>
+            <div id="spreadsheetDiv" class="container"></div>
         </div>
 
         <div id="spreadsheetReconcile" class="container">
+            <div class="unreconciledCount"></div>
+            <div id="reconcileDiv" class="container"></div>
+        </div>
 
+        <div id="spreadsheetRender" class="container">
+            <b>Copy your updated spreadsheet from here:</b><br/>
+            <textarea rows="15" cols="80" name="outputSpreadSheet" id="outputSpreadSheet"></textarea><br/>
+            <p/>
         </div>
     </div>
 </body>

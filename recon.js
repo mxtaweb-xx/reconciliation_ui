@@ -25,6 +25,33 @@ function parseSpreadsheet(spreadsheet)
     return {"aoColumns":columns, "aaData":data}
 }
 
+function renderSpreadsheet()
+{
+    if(spreadSheetData != null)
+    {
+        var ret = "";
+        var columns = spreadSheetData["aoColumns"];
+        for(var i = 0; i < columns.length; i++)
+        {
+            ret += columns[i]["sTitle"];
+            if(i < columns.length) ret += "\t";
+        }
+        ret += "\n";
+        var rows = spreadSheetData["aaData"];
+        for(var i = 0; i < rows.length; i++)
+        {
+            var row = rows[i];
+            for(var j = 0; j < row.length; j++)
+            {
+                ret += row[j];
+                if(j < row.length) ret += "\t";
+            }
+            ret += "\n";
+        }
+        $("#outputSpreadSheet")[0].value = ret;
+    }
+}
+
 function autoReconcile()
 {
     currentRow = getNextAutoReconRow();
@@ -138,7 +165,7 @@ function renderReconChoices(results)
 
     reconHtml += '<b>Query Results:</b><br/><table cellpadding="0" cellspacing="0" border="0" class="display" id="reconTable"/><br/><button onclick="handleReconChoice(\'None\')">Skip Record</button>';
 
-    $('#spreadsheetReconcile').html(reconHtml);
+    $('#reconcileDiv').html(reconHtml);
     $('#reconTable').dataTable({"aoColumns":columns, "aaData":data, "bAutoWidth":false, "bSort":false});
     tabs.tabs("select", 2);
 }
@@ -147,7 +174,7 @@ function handleReconChoice(id)
 {
     setId(currentManualReconRow, id);
     currentManualReconRow = null;
-    $('#spreadsheetReconcile').html("");
+    $('#reconcileDiv').html("");
     manualReconcile();
 }
 
@@ -168,6 +195,21 @@ function setId(row, id)
 {
     row[row.length - 1] = id;
     spreadSheetTable.fnDraw();
+    updateUnreconciledCount();
+}
+
+function updateUnreconciledCount()
+{
+    var unreconciledCount = 0;
+    if(spreadSheetData != null)
+    {
+        var rows = spreadSheetData["aaData"];
+        for(var i = 0; i < rows.length; i++)
+        {
+            if(isUnreconciled(rows[i])) unreconciledCount++;
+        }
+    }
+    $(".unreconciledCount").html("" + unreconciledCount + " unreconciled records")
 }
 
 var sampleData =
@@ -221,3 +263,4 @@ var sampleData =
 "Tol'able David	/film/film	Henry King\n" +
 "Tora! Tora! Tora!	/film/film	Kinji Fukasuka\n" +
 "Tornado!	/film/film	Noel Nosseck\n";
+
