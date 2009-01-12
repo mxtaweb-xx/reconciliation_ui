@@ -25,71 +25,51 @@ function parseSpreadsheet(spreadsheet)
     return {"aoColumns":columns, "aaData":data}
 }
 
-function reconcile()
+function autoReconcile()
 {
-    if(currentRow == null || !isUnreconciled(currentRow))
-    {
-        currentRow = getNextRow();
-    }
-
+    currentRow = getNextAutoReconRow();
     if(currentRow != null)
     {
-        getCandidates(getProps(), currentRow, reconcileResults)
+        getCandidates(getProps(), currentRow, autoReconcileResults)
     }
 }
 
-function reconcileResults(results)
+function autoReconcileResults(results)
 {
     // no results, set to None:
     if(results.length == 0)
     {
         setId(currentRow, "None");
-        currentRow = null;
-        reconcile();
     }
     // match found:
     else if(results[0]["match"] == true)
     {
         setId(currentRow, results[0]["id"]);
-        currentRow = null;
-        reconcile();
     }
-    // stop, render reconcile record screen:
-    else
-    {
-        renderReconChoices(results)
-    }
+    currentRow = null;
+    autoReconcile();
 }
 
-function renderReconChoices(results)
+function getNextAutoReconRow()
 {
-    var columns = [{"sTitle":"Score", "sType":"numeric"}, {"sTitle":"Names"}, {"sTitle":"Types"}, {"sTitle":"id"}, {"sTitle":"", "bSortable":false}]
-    var data = []
-    for(var i = 0; i < results.length; i++)
+    var rows = spreadSheetData["aaData"]
+    // we've walked the list, terminate:
+    if(currentReconRowId >= rows.length)
     {
-        var result = results[i];
-        var score = result["score"]
-        var names = "";
-        for(var j = 0; j < result["name"].length; j++) names += result["name"][j] + "<br/>";
-        var types = "";
-        for(var j = 0; j < result["type"].length; j++) types += result["type"][j] + "<br/>";
-        var id = result["id"];
-        var choice = '<button onclick="handleReconChoice(\'' + id + '\')">Select</button>'
-        data[data.length] = [score, names, types, id, choice]
+        currentRowId = -1;
+        return null;
     }
-
-    reconHtml = '<table cellpadding="0" cellspacing="0" border="0" class="display"><thead><tr>';
-    var props = getProps()
-    for(var i = 0; i < props.length; i++) reconHtml += '<th>' + props[i] + '</th>';
-    reconHtml += '</tr></thead><tbody><tr>';
-    for(var i = 0; i < currentRow.length; i++) reconHtml += '<td>' + currentRow[i] + '</td>';
-    reconHtml += '</tr></tbody></table><p/>';
-
-    reconHtml += '<table cellpadding="0" cellspacing="0" border="0" class="display" id="reconTable"/><p/><button onclick="None">Skip Record</button>';
-
-    $('#spreadsheetReconcile').html(reconHtml);
-    $('#reconTable').dataTable({"aoColumns":columns, "aaData":data, "bAutoWidth":false, "aaSorting":[[0, "desc"]]});
-    tabs.tabs("select", 2);
+    // we're just starting out:
+    if(currentReconRowId < 0) currentReconRowId = 0;
+    // skip already reconciled stuff:
+    while(currentReconRowId < rows.length && !isUnreconciled(rows[currentReconRowId])) currentReconRowId++;
+    if(currentReconRowId < rows.length)
+    {
+        var ret = rows[currentReconRowId];
+        currentReconRowId++;
+        return ret;
+    }
+    else return null;
 }
 
 function getCandidates(props, row, callback)
@@ -109,22 +89,73 @@ function getCandidates(props, row, callback)
     $.post("query", {"q":JSON.stringify(query), "limit":50}, callback, "json")
 }
 
+function manualReconcile()
+{
+    currentManualReconRow = getFirstUnreconRow();
+    if(currentManualReconRow != null)
+    {
+        getCandidates(getProps(), currentManualReconRow, renderReconChoices)
+    }
+}
+
+function getFirstUnreconRow()
+{
+    if(spreadSheetData != null)
+    {
+        var rows = spreadSheetData["aaData"];
+        for(var i = 0; i < rows.length; i++)
+        {
+            var row = rows[i];
+            if(isUnreconciled(row)) return row;
+        }
+    }
+    return null;
+}
+
+function renderReconChoices(results)
+{
+    var columns = [{"sTitle":""}, {"sTitle":"Score", "sType":"numeric"}, {"sTitle":"Names"}, {"sTitle":"Types"}, {"sTitle":"id"}]
+    var data = []
+    for(var i = 0; i < results.length; i++)
+    {
+        var result = results[i];
+        var score = result["score"]
+        var names = "";
+        for(var j = 0; j < result["name"].length; j++) names += result["name"][j] + "<br/>";
+        var types = "";
+        for(var j = 0; j < result["type"].length; j++) types += result["type"][j] + "<br/>";
+        var id = result["id"];
+        var choice = '<button onclick="handleReconChoice(\'' + id + '\')">Select</button>'
+        data[data.length] = [choice, score, names, types, id]
+    }
+
+    reconHtml = '<b>Current Record:</b><br/><table cellpadding="0" cellspacing="0" border="0" class="display" style="background-color: #E7EEF3"><thead><tr>';
+    var props = getProps()
+    for(var i = 0; i < props.length; i++) reconHtml += '<th>' + props[i] + '</th>';
+    reconHtml += '</tr></thead><tbody><tr>';
+    for(var i = 0; i < currentManualReconRow.length; i++) reconHtml += '<td>' + currentManualReconRow[i] + '</td>';
+    reconHtml += '</tr></tbody></table><p/>';
+
+    reconHtml += '<b>Query Results:</b><br/><table cellpadding="0" cellspacing="0" border="0" class="display" id="reconTable"/><br/><button onclick="handleReconChoice(\'None\')">Skip Record</button>';
+
+    $('#spreadsheetReconcile').html(reconHtml);
+    $('#reconTable').dataTable({"aoColumns":columns, "aaData":data, "bAutoWidth":false, "bSort":false});
+    tabs.tabs("select", 2);
+}
+
+function handleReconChoice(id)
+{
+    setId(currentManualReconRow, id);
+    currentManualReconRow = null;
+    $('#spreadsheetReconcile').html("");
+    manualReconcile();
+}
+
 function getProps()
 {
     var props = []
     for(var i = 0; i < spreadSheetData["aoColumns"].length; i++) props[i] = spreadSheetData["aoColumns"][i]["sTitle"];
     return props
-}
-
-function getNextRow()
-{
-    var rows = spreadSheetData["aaData"]
-    for(var i = 0; i < rows.length; i++)
-    {
-        var row = rows[i];
-        if(isUnreconciled(row)) return row;
-    }
-    return null;
 }
 
 function isUnreconciled(row)
@@ -133,22 +164,13 @@ function isUnreconciled(row)
     return id == undefined || id == null || id == "";
 }
 
-function handleReconChoice(id)
-{
-    setId(currentRow, id);
-    currentRow = null;
-    $('#spreadsheetReconcile').html("");
-    tabs.tabs("select", 1);
-    reconcile();
-}
-
 function setId(row, id)
 {
     row[row.length - 1] = id;
     spreadSheetTable.fnDraw();
 }
 
-sampleData =
+var sampleData =
 "/type/object/name	/type/object/type	/film/film/directed_by\n" +
 "Stolen Kisses	/film/film	Francois Truffaut\n" +
 "The Stoned Age	/film/film	James Melkonian\n" +

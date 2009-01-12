@@ -14,16 +14,19 @@
     <script type="text/javascript" language="javascript" src="recon.js"></script>
     <script type="text/javascript" language="javascript" charset="utf-8">
         var currentRow = null;
+        var currentManualReconRoad = null;
         var tabs;
         var spreadSheetData;
         var spreadSheetTable;
+        var currentReconRowId = -1;
 
         function handleNewSpreadsheet()
         {
             $('#spreadsheetDiv').html(
-                    '<table cellpadding="0" cellspacing="0" border="0" class="display" id="spreadsheetTable"/><br/><button onclick="reconcile()">Reconcile</button>');
+                    '<table cellpadding="0" cellspacing="0" border="0" class="display" id="spreadsheetTable"/><br/><button onclick="autoReconcile()">Auto-Reconcile</button>');
             spreadSheetData = parseSpreadsheet($('#spreadsheet')[0].value)
             spreadSheetData["bAutoWidth"] = false
+            spreadSheetData["bSort"] = false
             spreadSheetTable = $('#spreadsheetTable').dataTable(spreadSheetData)
             tabs.tabs("select", 1);
         }
@@ -31,6 +34,9 @@
         $(document).ready(function() {
             tabs = $("#tabs > ul");
             tabs.tabs();
+            tabs.bind("tabsselect", function(event, ui) {
+                if(ui.index == 2) manualReconcile()
+            });
             tabs.tabs("select", 0);
         });
     </script>
