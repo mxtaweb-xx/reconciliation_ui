@@ -10,7 +10,7 @@
         <servlet-class>com.metaweb.reconservice.svc.QueryServlet</servlet-class>
         <init-param>
             <param-name>index-location</param-name>
-            <param-value>/Users/colin/dev/reconciliation_v2/index</param-value>
+            <param-value>../index</param-value>
         </init-param>
         <load-on-startup>1</load-on-startup>
     </servlet>
