@@ -52,13 +52,38 @@ function renderSpreadsheet()
     }
 }
 
+var autoReconciling = false;
+function beginAutoReconciliation()
+{
+    if (autoReconciling) return;
+    beginningAutoReconcile();
+    autoReconcile();
+}
+
+function beginningAutoReconcile()
+{
+    autoReconciling = true;
+    $(".nowReconciling").show();
+    $(".notReconciling").hide();
+}
+
+function finishedAutoReconciling()
+{
+    autoReconciling = false;
+    $('.stoppingReconciliation').hide();
+    $(".nowReconciling").hide();
+    $('.notReconciling').show();
+}
+
 function autoReconcile()
 {
     currentRow = getNextAutoReconRow();
-    if(currentRow != null)
+    if(currentRow == null)
     {
-        getCandidates(getProps(), currentRow, autoReconcileResults)
+        finishedAutoReconciling();
+        return;
     }
+    getCandidates(getProps(), currentRow, autoReconcileResults)
 }
 
 function autoReconcileResults(results)
@@ -158,16 +183,21 @@ function renderReconChoices(results)
 
     reconHtml = '<b>Current Record:</b><br/><table cellpadding="0" cellspacing="0" border="0" class="display" style="background-color: #E7EEF3"><thead><tr>';
     var props = getProps()
-    for(var i = 0; i < props.length; i++) reconHtml += '<th>' + props[i] + '</th>';
+    
+    for(var i = 0; i < props.length; i++) 
+        reconHtml += '<th>' + props[i] + '</th>';
     reconHtml += '</tr></thead><tbody><tr>';
-    for(var i = 0; i < currentManualReconRow.length; i++) reconHtml += '<td>' + currentManualReconRow[i] + '</td>';
+    
+    for(var i = 0; i < currentManualReconRow.length; i++)
+        reconHtml += '<td>' + currentManualReconRow[i] + '</td>';
     reconHtml += '</tr></tbody></table><p/>';
 
     reconHtml += '<b>Query Results:</b><br/><table cellpadding="0" cellspacing="0" border="0" class="display" id="reconTable"/><br/><button onclick="handleReconChoice(\'None\')">Skip Record</button>';
 
     $('#reconcileDiv').html(reconHtml);
     $('#reconTable').dataTable({"aoColumns":columns, "aaData":data, "bAutoWidth":false, "bSort":false});
-    tabs.tabs("select", 2);
+    
+    tabs.tabs("select", 1);
 }
 
 function handleReconChoice(id)

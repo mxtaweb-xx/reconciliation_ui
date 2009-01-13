@@ -4,8 +4,11 @@
 <head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
     <title>Reconciliation Service</title>
+    
     <link rel="stylesheet" href="dataTables/media/css/demos.css" type="text/css" media="screen">
     <link rel="stylesheet" href="jquery.ui/themes/cupertino/ui.all.css" type="text/css" media="screen" title="Cupertino">
+    <link rel="stylesheet" href="recon.css" type="text/css" media="screen">
+
     <script type="text/javascript" language="javascript" src="json2.js"></script>
     <script type="text/javascript" language="javascript" src="jquery.js"></script>
     <script type="text/javascript" language="javascript" src="jquery.ui/ui/ui.core.js"></script>
@@ -23,51 +26,54 @@
 
         function handleNewSpreadsheet()
         {
-            $('#spreadsheetDiv').html(
-                    '<table cellpadding="0" cellspacing="0" border="0" class="display" id="spreadsheetTable"/><br/><button onclick="autoReconcile()">Auto-Reconcile</button>');
+            $('#spreadsheetDiv').show();
             spreadSheetData = parseSpreadsheet($('#spreadsheet')[0].value)
             updateUnreconciledCount();
             spreadSheetData["bAutoWidth"] = false
             spreadSheetData["bSort"] = false
             spreadSheetTable = $('#spreadsheetTable').dataTable(spreadSheetData)
-            tabs.tabs("select", 1);
-        }
-
-        $(document).ready(function() {
+            $('#spreadsheetInput').hide();
             tabs = $("#tabs > ul");
             tabs.tabs();
             tabs.bind("tabsselect", function(event, ui) {
-                if(ui.index == 2) manualReconcile();
-                else if (ui.index == 3) renderSpreadsheet();
+                if(ui.index == 1) manualReconcile();
+                else if (ui.index == 2) renderSpreadsheet();
             });
+            $("#tabs").show();
             tabs.tabs("select", 0);
+        }
+
+        $(document).ready(function() {
+            $(".invisible").hide();
         });
     </script>
 </head>
 <body id="dt_example">
-    <div id="tabs" >
+    <div id="spreadsheetInput" class="container">
+        <b>Copy your spreadsheet here:</b><br/>
+        <textarea rows="15" cols="80" name="spreadsheet" id="spreadsheet"></textarea><br/>
+        <button onclick="handleNewSpreadsheet()">Parse Spreadsheet</button>
+        <button onclick="$('#spreadsheet').html(sampleData)">Sample Data</button>
+        <p/>
+    </div>
+    
+    <div id="tabs" class="invisible">
         <ul>
-            <li><a href="#spreadsheetInput"><span>Load Spreadsheet</span></a></li>
             <li><a href="#spreadsheetPreview"><span>Browse Data</span></a></li>
             <li><a href="#spreadsheetReconcile"><span>Reconcile Record</span></a></li>
             <li><a href="#spreadsheetRender"><span>Retrieve Spreadsheet</span></a></li>
         </ul>
 
-        <div id="spreadsheetInput" class="container">
-            <b>Copy your spreadsheet here:</b><br/>
-            <textarea rows="15" cols="80" name="spreadsheet" id="spreadsheet"></textarea><br/>
-            <button onclick="handleNewSpreadsheet()">Parse Spreadsheet</button>
-            <button onclick="$('#spreadsheet').html(sampleData)">Sample Data</button>
-            <p/>
-        </div>
 
         <div id="spreadsheetPreview" class="container">
-            <div class="unreconciledCount"></div>
-            <div id="spreadsheetDiv" class="container"></div>
+            <div id="spreadsheetDiv" class="container invisible">
+              <table cellpadding="0" cellspacing="0" border="0" class="display" id="spreadsheetTable"></table>
+              <br/>
+              <button class='notReconciling' onclick="beginAutoReconciliation()">Auto-Reconcile</button>
+            </div>
         </div>
 
         <div id="spreadsheetReconcile" class="container">
-            <div class="unreconciledCount"></div>
             <div id="reconcileDiv" class="container"></div>
         </div>
 
@@ -76,6 +82,10 @@
             <textarea rows="15" cols="80" name="outputSpreadSheet" id="outputSpreadSheet"></textarea><br/>
             <p/>
         </div>
+    </div>
+    <div class="progress">
+      <span class='nowReconciling invisible' id='AutorecStatusMessage'>Auto-Reconciling...</span>
+      <span class="unreconciledCount"></span>
     </div>
 </body>
 </html>
