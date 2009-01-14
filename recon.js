@@ -83,7 +83,7 @@ function autoReconcile()
         finishedAutoReconciling();
         return;
     }
-    getCandidates(getProps(), currentRow, autoReconcileResults)
+    getCandidates(getProps(), currentRow, "autoReconcileResults");
 }
 
 function autoReconcileResults(results)
@@ -138,7 +138,7 @@ function getCandidates(props, row, callback)
             values[values.length] = value;
         }
     }
-    $.post("query", {"q":JSON.stringify(query), "limit":50}, callback, "json")
+    $.getScript("http://localhost:9080/query?q=" + encodeURIComponent(JSON.stringify(query)) + "limit=50&jsonp=" + callback);
 }
 
 function manualReconcile()
@@ -146,7 +146,7 @@ function manualReconcile()
     currentManualReconRow = getFirstUnreconRow();
     if(currentManualReconRow != null)
     {
-        getCandidates(getProps(), currentManualReconRow, renderReconChoices)
+        getCandidates(getProps(), currentManualReconRow, "renderReconChoices")
     }
 }
 
