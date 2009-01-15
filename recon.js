@@ -138,7 +138,7 @@ function getCandidates(props, row, callback)
             values[values.length] = value;
         }
     }
-    $.getScript("http://localhost:9080/query?q=" + encodeURIComponent(JSON.stringify(query)) + "limit=50&jsonp=" + callback);
+    $.getScript("query?q=" + encodeURIComponent(JSON.stringify(query)) + "limit=50&jsonp=" + callback);
 }
 
 function manualReconcile()
@@ -183,11 +183,11 @@ function renderReconChoices(results)
 
     reconHtml = '<b>Current Record:</b><br/><table cellpadding="0" cellspacing="0" border="0" class="display" style="background-color: #E7EEF3"><thead><tr>';
     var props = getProps()
-    
-    for(var i = 0; i < props.length; i++) 
+
+    for(var i = 0; i < props.length; i++)
         reconHtml += '<th>' + props[i] + '</th>';
     reconHtml += '</tr></thead><tbody><tr>';
-    
+
     for(var i = 0; i < currentManualReconRow.length; i++)
         reconHtml += '<td>' + currentManualReconRow[i] + '</td>';
     reconHtml += '</tr></tbody></table><p/>';
@@ -196,7 +196,7 @@ function renderReconChoices(results)
 
     $('#reconcileDiv').html(reconHtml);
     $('#reconTable').dataTable({"aoColumns":columns, "aaData":data, "bAutoWidth":false, "bSort":false});
-    
+
     tabs.tabs("select", 1);
 }
 
