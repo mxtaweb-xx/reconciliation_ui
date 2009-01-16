@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="dataTables/media/css/demos.css" type="text/css" media="screen">
     <link rel="stylesheet" href="jquery.ui/themes/cupertino/ui.all.css" type="text/css" media="screen" title="Cupertino">
     <link rel="stylesheet" href="recon.css" type="text/css" media="screen">
+    <link rel="stylesheet" href="progressbar/progressbar.css" type="text/css" media="screen">
 
     <script type="text/javascript" language="javascript" src="json2.js"></script>
     <script type="text/javascript" language="javascript" src="jquery.js"></script>
@@ -15,6 +16,7 @@
     <script type="text/javascript" language="javascript" src="jquery.ui/ui/ui.tabs.js"></script>
     <script type="text/javascript" language="javascript" src="dataTables/media/js/jquery.dataTables.js"></script>
     <script type="text/javascript" language="javascript" src="sampledata.js"></script>
+    <script type="text/javascript" language="javascript" src="progressbar/jqueryprogressbar.js"></script>
     <script type="text/javascript" language="javascript" src="recon.js"></script>
     <script type="text/javascript" language="javascript" charset="utf-8">
         var currentRow = null;
@@ -60,7 +62,7 @@
     <div id="tabs" class="invisible">
         <ul>
             <li><a href="#spreadsheetPreview"><span>Browse Data</span></a></li>
-            <li><a href="#spreadsheetReconcile"><span>Reconcile Record</span></a></li>
+            <li><a href="#spreadsheetReconcile"><span>Reconcile Record <span class="manual_count">(0)</span></span></a></li>
             <li><a href="#spreadsheetRender"><span>Retrieve Spreadsheet</span></a></li>
         </ul>
 
@@ -70,11 +72,12 @@
               <table cellpadding="0" cellspacing="0" border="0" class="display" id="spreadsheetTable"></table>
               <br/>
               <button class='notReconciling' onclick="beginAutoReconciliation()">Auto-Reconcile</button>
+              <button class='nowReconciling invisible' onclick="stopReconciliation()">Stop Auto-Reconciliation</button>
             </div>
         </div>
 
         <div id="spreadsheetReconcile" class="container">
-            <div id="reconcileDiv" class="container"></div>
+            <div id="reconcileDiv" class="container">Loading...</div>
         </div>
 
         <div id="spreadsheetRender" class="container">
@@ -83,9 +86,8 @@
             <p/>
         </div>
     </div>
-    <div class="progress">
-      <span class='nowReconciling invisible' id='AutorecStatusMessage'>Auto-Reconciling...</span>
-      <span class="unreconciledCount"></span>
+    <div id="progresscontainer" class="nowReconciling invisible">
+      <div id='progressbar'></div>
     </div>
 </body>
 </html>

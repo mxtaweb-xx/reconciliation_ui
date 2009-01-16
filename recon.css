@@ -1,3 +1,13 @@
-.progress {
-    margin: 10px;
+table {
+    border-collapse: collapse;
+}
+
+table.currentRecord {
+    background: #E7EEF3;
+}
+
+#progresscontainer {
+    position:absolute;
+    top:2px;
+    right:2px;
 }
