@@ -82,6 +82,13 @@ ul {
 
 
 
+table.manualReconciliationChoices tbody tr {
+    height: 100px;
+}
+
+table.manualReconciliationChoices tbody tr a {
+    color: #0063DC;
+}
 
 table.currentRecord {
     background: #E7EEF3;

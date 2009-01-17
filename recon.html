@@ -54,10 +54,9 @@
             $(".invisible").hide();
             jQuery.ajaxSettings.cache = true; //keeps jquery from inserting cache-busting timecodes into json requests
             
+            setReconciliationURL();
+            
             //handle the options panel
-            var url_parts = window.location.href.split("/");
-            url_parts.pop();
-            reconciliation_url = url_parts.join("/") + "/";
             $("#optionsPanel input").each(function(idx, input) {
               $(input).change(function(){
                 eval(input.id + '="' + input.value + '"');
@@ -79,7 +78,7 @@
           <b>Copy your spreadsheet here:</b><br/>
           <textarea rows="15" cols="80" name="spreadsheet" id="spreadsheet"></textarea><br/>
           <button onclick="handleNewSpreadsheet()">Parse Spreadsheet</button>
-          <button onclick="$('#spreadsheet').html(sampleData)">Sample Data</button>
+          <button onclick="$('#spreadsheet')[0].value = sampleData">Sample Data</button>
           <p/>
       </div>
     

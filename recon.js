@@ -5,6 +5,18 @@ var manualQueueSize = 0;
 var freebase_url = "http://www.freebase.com/"
 var reconciliation_url = "";
 
+function setReconciliationURL()
+{
+    if (window.location.href.substring(0,4) == "file")
+    {
+        reconciliation_url = "http://www.mqlx.com/reconciliation/";
+        return;
+    }
+    var url_parts = window.location.href.split("/");
+    url_parts.pop();
+    reconciliation_url = url_parts.join("/") + "/";
+}
+
 function parseSpreadsheet(spreadsheet)
 {
     var lines = spreadsheet.split("\n");
@@ -166,7 +178,7 @@ function getCandidates(row, callback)
             values[values.length] = value;
         }
     }
-    $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:50}, callback);
+    $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:5}, callback);
 }
 
 function manualReconcile()
@@ -231,10 +243,10 @@ function renderReconChoices(results)
         var url = freebase_url + "/view/" + result['id'];
         
         
-        html += "<tr class="+result["id"].replace(/\//g,"_") + " " + ["even","odd"][i % 2] +"'>";
+        html += "<tr class='"+result["id"].replace(/\//g,"_") + " " + ["even","odd"][i % 2] +"'>";
         html += '<td><button class=\'manualSelection\' onclick="handleReconChoice(\'' + result['id'] + '\')">Select</button></td>'
         html += "<td><img src='"+freebase_url+"/api/trans/image_thumb/"+result['id']+"?maxwidth=100&maxheight=100'></td>";
-        html += "<td><a href='"+url+"'>";
+        html += "<td><a target='_blank' href='"+url+"'>";
         for(var j = 0; j < result["name"].length; j++) html += result["name"][j] + "<br/>";
         html += "</a></td><td>";
         for(var j = 0; j < result["type"].length; j++) html += result["type"][j] + "<br/>";
@@ -284,7 +296,7 @@ function fillInMQLProps(mqlResult, status)
             
             for (var j = 0; j < props.length; j++)
             {
-                propHTML = "<a href='"+freebase_url+"/view" + props[j]["id"] + "'>" + props[j]["name"] + "</a><br/>";
+                propHTML = "<a target='_blank' href='"+freebase_url+"/view" + props[j]["id"] + "'>" + props[j]["name"] + "</a><br/>";
             }
             row.children("td." + mqlProps[i].replace(/\//g,"_")).html(propHTML);
         }
