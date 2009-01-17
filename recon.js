@@ -2,6 +2,8 @@ var totalRecords = 0;
 var remainingAutoRec = 0;
 
 var manualQueueSize = 0;
+var freebase_url = "http://www.freebase.com/"
+var reconciliation_url = "";
 
 function parseSpreadsheet(spreadsheet)
 {
@@ -97,7 +99,7 @@ function autoReconcile()
         finishedAutoReconciling();
         return;
     }
-    getCandidates(currentRow, "autoReconcileResults");
+    getCandidates(currentRow, autoReconcileResults);
 }
 
 function autoReconcileResults(results)
@@ -164,8 +166,7 @@ function getCandidates(row, callback)
             values[values.length] = value;
         }
     }
-//     $.getScript("http://www.mqlx.com/reconciliation/query?q=" + encodeURIComponent(JSON.stringify(query)) + "limit=50&jsonp=" + callback);
-    $.getScript("query?q=" + encodeURIComponent(JSON.stringify(query)) + "limit=50&jsonp=" + callback);
+    $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:50}, callback);
 }
 
 function manualReconcile()
@@ -173,7 +174,7 @@ function manualReconcile()
     currentManualReconRow = getFirstUnreconRow();
     if(currentManualReconRow != null)
     {
-        getCandidates(currentManualReconRow, "renderReconChoices")
+        getCandidates(currentManualReconRow, renderReconChoices)
     }
 }
 
@@ -227,11 +228,12 @@ function renderReconChoices(results)
     
     for (var i = 0; i < results.length; i++) {
         var result = results[i];
-        var url = "http://www.freebase.com/view/" + result['id'];
+        var url = freebase_url + "/view/" + result['id'];
+        
         
         html += "<tr class="+result["id"].replace(/\//g,"_") + " " + ["even","odd"][i % 2] +"'>";
         html += '<td><button class=\'manualSelection\' onclick="handleReconChoice(\'' + result['id'] + '\')">Select</button></td>'
-        html += "<td><img src='http://www.freebase.com/api/trans/image_thumb/"+result['id']+"?maxwidth=100&maxheight=100'></td>";
+        html += "<td><img src='"+freebase_url+"/api/trans/image_thumb/"+result['id']+"?maxwidth=100&maxheight=100'></td>";
         html += "<td><a href='"+url+"'>";
         for(var j = 0; j < result["name"].length; j++) html += result["name"][j] + "<br/>";
         html += "</a></td><td>";
@@ -243,7 +245,8 @@ function renderReconChoices(results)
     html += '<button onclick="handleReconChoice(\'None\')">Skip Record</button>';
 
     $('#reconcileDiv').html(html);
-
+    $("#additionalReconcile").show();
+    
     for (var i = 0; i < results.length; i++) 
     {
         var result = results[i];
@@ -251,7 +254,7 @@ function renderReconChoices(results)
         for (var j = 0; j < mqlProps.length; j++)
             query[mqlProps[j]] = [{"id":null, "name":null}];
         var envelope = {query:query};
-        $.getJSON("http://www.freebase.com/api/service/mqlread?callback=?&", {query:JSON.stringify(envelope)}, fillInMQLProps);
+        $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {query:JSON.stringify(envelope)}, fillInMQLProps);
     }
 }
 
@@ -263,6 +266,7 @@ function handleReconChoice(id)
     setId(currentManualReconRow, id);
     currentManualReconRow = null;
     $('#reconcileDiv').html("Loading...");
+    $("#additionalReconcile").hide();
     manualReconcile();
 }
 
@@ -280,7 +284,7 @@ function fillInMQLProps(mqlResult, status)
             
             for (var j = 0; j < props.length; j++)
             {
-                propHTML = "<a href='http://www.freebase.com/view" + props[j]["id"] + "'>" + props[j]["name"] + "</a><br/>";
+                propHTML = "<a href='"+freebase_url+"/view" + props[j]["id"] + "'>" + props[j]["name"] + "</a><br/>";
             }
             row.children("td." + mqlProps[i].replace(/\//g,"_")).html(propHTML);
         }

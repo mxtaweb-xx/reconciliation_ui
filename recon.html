@@ -5,10 +5,12 @@
     <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
     <title>Reconciliation Service</title>
     
-    <link rel="stylesheet" href="dataTables/media/css/demos.css" type="text/css" media="screen">
-    <link rel="stylesheet" href="jquery.ui/themes/cupertino/ui.all.css" type="text/css" media="screen" title="Cupertino">
-    <link rel="stylesheet" href="recon.css" type="text/css" media="screen">
-    <link rel="stylesheet" href="progressbar/progressbar.css" type="text/css" media="screen">
+    <link rel="stylesheet" href="dataTables/media/css/demos.css" type="text/css" media="screen" charset="utf-8">
+    <link rel="stylesheet" href="jquery.ui/themes/cupertino/ui.all.css" type="text/css" media="screen" title="Cupertino" charset="utf-8">
+    <link rel="stylesheet" href="recon.css" type="text/css" media="screen" charset="utf-8">
+    <link rel="stylesheet" href="progressbar/progressbar.css" type="text/css" media="screen" charset="utf-8">
+    <link rel="stylesheet" href="suggest/freebase-controls.css" type="text/css" media="screen" charset="utf-8">
+    <link rel="stylesheet" href="suggest/jquery.freebase.minitopic.css" type="text/css" media="screen" charset="utf-8">
 
     <script type="text/javascript" language="javascript" src="json2.js"></script>
     <script type="text/javascript" language="javascript" src="jquery.js"></script>
@@ -18,7 +20,10 @@
     <script type="text/javascript" language="javascript" src="sampledata.js"></script>
     <script type="text/javascript" language="javascript" src="progressbar/jqueryprogressbar.js"></script>
     <script type="text/javascript" language="javascript" src="recon.js"></script>
+    <script src="suggest/jquery.freebase.minitopic.js" type="text/javascript" charset="utf-8"></script>
+    <script src="suggest/freebase.suggest.js" type="text/javascript" charset="utf-8"></script>
     <script type="text/javascript" language="javascript" charset="utf-8">
+    
         var currentRow = null;
         var currentManualReconRoad = null;
         var tabs;
@@ -47,47 +52,77 @@
 
         $(document).ready(function() {
             $(".invisible").hide();
+            jQuery.ajaxSettings.cache = true; //keeps jquery from inserting cache-busting timecodes into json requests
+            
+            //handle the options panel
+            var url_parts = window.location.href.split("/");
+            url_parts.pop();
+            reconciliation_url = url_parts.join("/") + "/";
+            $("#optionsPanel input").each(function(idx, input) {
+              $(input).change(function(){
+                eval(input.id + '="' + input.value + '"');
+              });
+              input.value = eval(input.id);
+            });
+            
+            $("#find_topic")
+              .freebaseSuggest()
+              .bind("fb-select", function(e, data) { 
+                handleReconChoice(data.id);
+              });
         });
     </script>
 </head>
 <body id="dt_example">
-    <div id="spreadsheetInput" class="container">
-        <b>Copy your spreadsheet here:</b><br/>
-        <textarea rows="15" cols="80" name="spreadsheet" id="spreadsheet"></textarea><br/>
-        <button onclick="handleNewSpreadsheet()">Parse Spreadsheet</button>
-        <button onclick="$('#spreadsheet').html(sampleData)">Sample Data</button>
-        <p/>
-    </div>
+    <div id='main_app'>
+      <div id="spreadsheetInput" class="container">
+          <b>Copy your spreadsheet here:</b><br/>
+          <textarea rows="15" cols="80" name="spreadsheet" id="spreadsheet"></textarea><br/>
+          <button onclick="handleNewSpreadsheet()">Parse Spreadsheet</button>
+          <button onclick="$('#spreadsheet').html(sampleData)">Sample Data</button>
+          <p/>
+      </div>
     
-    <div id="tabs" class="invisible">
-        <ul>
-            <li><a href="#spreadsheetPreview"><span>Browse Data</span></a></li>
-            <li><a href="#spreadsheetReconcile"><span>Reconcile Record <span class="manual_count">(0)</span></span></a></li>
-            <li><a href="#spreadsheetRender"><span>Retrieve Spreadsheet</span></a></li>
-        </ul>
+      <div id="tabs" class="invisible">
+          <ul>
+              <li><a href="#spreadsheetPreview"><span>Browse Data</span></a></li>
+              <li><a href="#spreadsheetReconcile"><span>Reconcile Record <span class="manual_count">(0)</span></span></a></li>
+              <li><a href="#spreadsheetRender"><span>Retrieve Spreadsheet</span></a></li>
+          </ul>
 
 
-        <div id="spreadsheetPreview" class="container">
-            <div id="spreadsheetDiv" class="container invisible">
-              <table cellpadding="0" cellspacing="0" border="0" class="display" id="spreadsheetTable"></table>
-              <br/>
-              <button class='notReconciling' onclick="beginAutoReconciliation()">Auto-Reconcile</button>
-              <button class='nowReconciling invisible' onclick="stopReconciliation()">Stop Auto-Reconciliation</button>
-            </div>
-        </div>
+          <div id="spreadsheetPreview" class="container">
+              <div id="spreadsheetDiv" class="container invisible">
+                <table cellpadding="0" cellspacing="0" border="0" class="display" id="spreadsheetTable"></table>
+                <br/>
+                <button class='notReconciling' onclick="beginAutoReconciliation()">Auto-Reconcile</button>
+                <button class='nowReconciling invisible' onclick="stopReconciliation()">Stop Auto-Reconciliation</button>
+              </div>
+          </div>
 
-        <div id="spreadsheetReconcile" class="container">
-            <div id="reconcileDiv" class="container">Loading...</div>
-        </div>
+          <div id="spreadsheetReconcile" class="container">
+              <div id="reconcileDiv" class="container">Loading...</div>
+              <div id="additionalReconcile" class='invisible'>
+                <label for="find_topic">Find Topic:</label><input type="text" name="find_topic" id="find_topic">
+              </div>
+          </div>
 
-        <div id="spreadsheetRender" class="container">
-            <b>Copy your updated spreadsheet from here:</b><br/>
-            <textarea rows="15" cols="80" name="outputSpreadSheet" id="outputSpreadSheet"></textarea><br/>
-            <p/>
-        </div>
+          <div id="spreadsheetRender" class="container">
+              <b>Copy your updated spreadsheet from here:</b><br/>
+              <textarea rows="15" cols="80" name="outputSpreadSheet" id="outputSpreadSheet"></textarea><br/>
+              <p/>
+          </div>
+      </div>
+      <div id="progresscontainer" class="nowReconciling invisible">
+        <div id='progressbar'></div>
+      </div>
+      
+      <a href="#optionsPanel" class='optionsButton' onClick='$("#main_app").hide();$("#optionsPanel").show(); return false;'>Options</a>
     </div>
-    <div id="progresscontainer" class="nowReconciling invisible">
-      <div id='progressbar'></div>
+    <div id="optionsPanel" class='invisible container'>
+      <label for="reconciliation_url">Reconciliation URL: </label><input type="text" name="reconciliation_url" value="" id="reconciliation_url" size='60'><br/>
+      <label for="freebase_url">Freebase URL: </label><input type="text" name="freebase_url" value="" id="freebase_url" size='60'><br/>
+      <button onClick='$("#optionsPanel").hide();$("#main_app").show();'>Back</button>
     </div>
 </body>
 </html>
