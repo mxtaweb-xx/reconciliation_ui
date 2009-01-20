@@ -33,6 +33,9 @@ var remainingAutoRec = 0;
 var manualQueueSize = 0;
 var freebase_url = "http://www.freebase.com/"
 var reconciliation_url = "";
+var id_column = "id";
+var headers;
+var rows;
 
 function setReconciliationURL() {
     if (window.location.href.substring(0,4) == "file") {
@@ -45,25 +48,94 @@ function setReconciliationURL() {
 }
 
 function parseSpreadsheet(spreadsheet) {
-    var lines = spreadsheet.split("\n");
-    var columns = [];
-    var data = [];
-    totalRecords = lines.length - 1;
-    remainingAutoRec = totalRecords;
-    for(var i = 0; i < lines.length; i++) {
-        var fields = lines[i].split("\t");
-        if(i == 0) {
-            for(var j = 0; j < fields.length; j++)
-                columns[j] = {"sTitle":fields[j]};
+    spreadsheet.replace(/\r/g, "")
+    var position = 0;
+    
+
+    function parseLine() {
+        var fields = [];
+        var inQuotes = false;
+        var field = "";
+        function nextField() {
+            fields.push(field);
+            field = "";
+            position += 1;
+            
+            //the field is quoted
+            if (spreadsheet[position] == '"'){
+                inQuotes = true;
+                position += 1;
+            }
         }
-        else {
-            if(fields.length != columns.length) break;
-            fields[fields.length] = ""
-            data[i - 1] = fields;
+        while(true) {
+            var c = spreadsheet[position];
+            if (inQuotes){
+                //quotes are quoted with two adjacent quotes
+                if (c == '"' && spreadsheet[position+1] == '"'){
+                    field += c;
+                    position += 2;
+                    continue;
+                }
+                //end of the quoted field
+                if (c == '"'){
+                    inQuotes = false;
+                    position += 1;
+                    nextField();
+                    continue;
+                }
+                
+                //just a character in the quoted field
+                field += c;
+                position += 1;
+                continue;
+            }
+            
+            //end of the field
+            if (c == "\t"){
+                nextField();
+                continue;
+            }
+            
+            //end of the line
+            if (c == undefined || c == "\n" || (c == '\r' && spreadsheet[position+1] == "\n")){
+                fields.push(field);
+                position += 1;
+                return fields;
+            }
+            
+            //just a character in the field
+            field += c;
+            position += 1;
         }
     }
-    columns[columns.length] = {"sTitle":"id"}
-    return {"aoColumns":columns, "aaData":data}
+    
+    headers = parseLine();
+    
+    //get, or make the id column
+    if (!contains(headers, "id") && !contains(headers, "/type/object/id"))
+        headers.push(id_column);
+    else if (contains(headers, "id"))
+        id_column = "id"
+        
+    var id_column_num = headers.indexOf(id_column);
+    rows = [];
+    while(spreadsheet[position] != undefined){
+        var row = parseLine();
+        //displaying "undefined" is ugly, empty string is better
+        row[id_column_num] = row[id_column_num] || "";
+        rows.push(row);
+    }
+    
+    //initialize some tracking variables
+    totalRecords = rows.length;
+    remainingAutoRec = totalRecords;
+
+    
+    //strange return values needed to construct data table
+    var result = {"aoColumns":[], "aaData":rows};
+    for (var i = 0; i < headers.length; i++)
+        result["aoColumns"].push({"sTitle":headers[i]});
+    return result;
 }
 
 function renderSpreadsheet() {
