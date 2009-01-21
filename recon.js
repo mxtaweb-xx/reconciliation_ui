@@ -60,13 +60,14 @@ function parseSpreadsheet(spreadsheet) {
             fields.push(field);
             field = "";
             position++;
-            
-            //the field is quoted
-            if (spreadsheet[position] == '"'){
-                inQuotes = true;
-                position++;
-            }
         }
+        function isEndOfLine() {
+            return spreadsheet[position] == undefined 
+                || spreadsheet[position] == "\n" 
+                || (  spreadsheet[position] == '\r' 
+                   && spreadsheet[position+1] == "\n")
+        }
+        //If this gives me any more trouble, I'm just doing a state machine
         while(true) {
             var c = spreadsheet[position];
             if (inQuotes){
@@ -80,12 +81,24 @@ function parseSpreadsheet(spreadsheet) {
                 if (c == '"'){
                     inQuotes = false;
                     position++;
+                    if (isEndOfLine()){
+                        fields.push(field);
+                        position++;
+                        return fields;
+                    }
                     nextField();
                     continue;
                 }
                 
                 //just a character in the quoted field
                 field += c;
+                position++;
+                continue;
+            }
+            
+            //the field is quoted
+            if (spreadsheet[position] == '"'){
+                inQuotes = true;
                 position++;
                 continue;
             }
@@ -97,7 +110,7 @@ function parseSpreadsheet(spreadsheet) {
             }
             
             //end of the line
-            if (c == undefined || c == "\n" || (c == '\r' && spreadsheet[position+1] == "\n")){
+            if (isEndOfLine()){
                 fields.push(field);
                 position += 1;
                 return fields;
@@ -128,25 +141,21 @@ function parseSpreadsheet(spreadsheet) {
 }
 
 function renderSpreadsheet() {
-    if(spreadSheetData != null) {
-        var ret = "";
-        var columns = spreadSheetData["aoColumns"];
-        for(var i = 0; i < columns.length; i++) {
-            ret += columns[i]["sTitle"];
-            if(i < columns.length) ret += "\t";
+    function encodeLine(arr) {
+        var values = [];
+        for(var i = 0; i < arr.length; i++){
+            var val = arr[i];
+            val.replace(/"/g, '""');
+            values.push('"' + val + '"');
         }
-        ret += "\n";
-        var rows = spreadSheetData["aaData"];
-        for(var i = 0; i < rows.length; i++) {
-            var row = rows[i];
-            for(var j = 0; j < row.length; j++) {
-                ret += row[j];
-                if(j < row.length) ret += "\t";
-            }
-            ret += "\n";
-        }
-        $("#outputSpreadSheet")[0].value = ret;
+        return values.join("\t");
     }
+    var lines = [];
+    lines.push(encodeLine(headers));
+    for (var i = 0; i < rows.length; i++)
+        lines.push(encodeLine(rows[i]));
+
+    $("#outputSpreadSheet")[0].value = lines.join("\n");
 }
 
 var autoReconciling = false;
@@ -307,7 +316,7 @@ function renderReconChoices(results) {
         html += "</td><td>" + result["score"] + "</td></tr>";
     }
     html += "</tbody></table>";
-    html += '<button onclick="handleReconChoice(\'None\')">Skip Record</button>';
+    html += '<button onclick="handleReconChoice(\'indeterminate\')">Skip Record</button>';
 
     $('#reconcileDiv').html(html);
     $("#additionalReconcile").show();
@@ -323,7 +332,7 @@ function renderReconChoices(results) {
 }
 
 function handleReconChoice(id) {
-    if (currentManualReconRow[currentManualReconRow.length-1] == "indeterminate")
+    if (currentManualReconRow[headers.indexOf(id_column)] == "indeterminate")
         manualQueueSize -= 1;
         
     setId(currentManualReconRow, id);
