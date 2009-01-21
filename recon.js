@@ -114,8 +114,8 @@ function parseSpreadsheet(spreadsheet) {
     //get, or make the id column
     if (!contains(headers, "id") && !contains(headers, "/type/object/id"))
         headers.push(id_column);
-    else if (contains(headers, "id"))
-        id_column = "id"
+    else if (contains(headers, "/type/object/id"))
+        id_column = "/type/object/id"
         
     var id_column_num = headers.indexOf(id_column);
     rows = [];
@@ -218,8 +218,11 @@ function getNextAutoReconRow() {
     if(currentReconRowId < 0) 
         currentReconRowId = 0;
     // skip already reconciled stuff:
-    while(currentReconRowId < rows.length && !isUnreconciled(rows[currentReconRowId])) 
+    while(currentReconRowId < rows.length && !isUnreconciled(rows[currentReconRowId])) {
+        remainingAutoRec--;
         currentReconRowId++;
+    }
+    updateUnreconciledCount();
     if(currentReconRowId >= rows.length)
         return null;
 
@@ -283,7 +286,6 @@ function renderReconChoices(results) {
     html += "<table class='display manualReconciliationChoices'><thead>";
     
     var mqlProps = getMqlProps();
-    
     var headers = ["","Image","Names","Types"].concat(mqlProps).concat(["Score"]);
     for (var i = 0; i < headers.length; i++)
         html += "<th>" + headers[i] + "</th>";
@@ -350,27 +352,25 @@ function fillInMQLProps(mqlResult) {
 }
 
 function getProps() {
-    var props = [];
-    for(var i = 0; i < spreadSheetData["aoColumns"].length; i++) props[i] = spreadSheetData["aoColumns"][i]["sTitle"];
-    return props;
+    return headers;
 }
 
 function getMqlProps() {
     var props = getProps();
     var mqlProps = [];
     for(var i =0; i < props.length; i++)
-        if (!contains(["/type/object/name","/type/object/type","id"], props[i]))
+        if (!contains(["/type/object/name","/type/object/type","id","/type/object/id"], props[i]) && props[i][0] == "/")
             mqlProps.push(props[i]);
     return mqlProps;
 }
 
 function isUnreconciled(row) {
-    var id = row[row.length - 1];
+    var id = row[headers.indexOf(id_column)];
     return id == undefined || id == null || id == "indeterminate" || id == "";
 }
 
 function setId(row, id) {
-    row[row.length - 1] = id;
+    row[headers.indexOf(id_column)] = id;
     spreadSheetTable.fnDraw();
     updateUnreconciledCount();
 }
