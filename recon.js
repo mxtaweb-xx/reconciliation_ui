@@ -59,12 +59,12 @@ function parseSpreadsheet(spreadsheet) {
         function nextField() {
             fields.push(field);
             field = "";
-            position += 1;
+            position++;
             
             //the field is quoted
             if (spreadsheet[position] == '"'){
                 inQuotes = true;
-                position += 1;
+                position++;
             }
         }
         while(true) {
@@ -79,14 +79,14 @@ function parseSpreadsheet(spreadsheet) {
                 //end of the quoted field
                 if (c == '"'){
                     inQuotes = false;
-                    position += 1;
+                    position++;
                     nextField();
                     continue;
                 }
                 
                 //just a character in the quoted field
                 field += c;
-                position += 1;
+                position++;
                 continue;
             }
             
@@ -125,17 +125,6 @@ function parseSpreadsheet(spreadsheet) {
         row[id_column_num] = row[id_column_num] || "";
         rows.push(row);
     }
-    
-    //initialize some tracking variables
-    totalRecords = rows.length;
-    remainingAutoRec = totalRecords;
-
-    
-    //strange return values needed to construct data table
-    var result = {"aoColumns":[], "aaData":rows};
-    for (var i = 0; i < headers.length; i++)
-        result["aoColumns"].push({"sTitle":headers[i]});
-    return result;
 }
 
 function renderSpreadsheet() {
@@ -207,9 +196,9 @@ function autoReconcileResults(results) {
     }
     else {
         setId(currentRow, "indeterminate");
-        manualQueueSize += 1;
+        manualQueueSize++;
     }
-    remainingAutoRec -= 1;
+    remainingAutoRec--;
     currentRow = null;
     if (stopReconciling) {
         finishedAutoReconciling();
@@ -219,22 +208,23 @@ function autoReconcileResults(results) {
 }
 
 function getNextAutoReconRow() {
-    var rows = spreadSheetData["aaData"]
     // we've walked the list, terminate:
     if(currentReconRowId >= rows.length) {
         currentRowId = -1;
         return null;
     }
+    
     // we're just starting out:
-    if(currentReconRowId < 0) currentReconRowId = 0;
+    if(currentReconRowId < 0) 
+        currentReconRowId = 0;
     // skip already reconciled stuff:
-    while(currentReconRowId < rows.length && !isUnreconciled(rows[currentReconRowId])) currentReconRowId++;
-    if(currentReconRowId < rows.length) {
-        var ret = rows[currentReconRowId];
+    while(currentReconRowId < rows.length && !isUnreconciled(rows[currentReconRowId])) 
         currentReconRowId++;
-        return ret;
-    }
-    else return null;
+    if(currentReconRowId >= rows.length)
+        return null;
+
+    currentReconRowId++;
+    return rows[currentReconRowId-1];;
 }
 
 function getCandidates(row, callback) {
@@ -259,12 +249,10 @@ function manualReconcile() {
 }
 
 function getFirstUnreconRow() {
-    if(spreadSheetData != null) {
-        var rows = spreadSheetData["aaData"];
-        for(var i = 0; i < rows.length; i++) {
-            var row = rows[i];
-            if(isUnreconciled(row)) return row;
-        }
+    if (rows != null) {
+        for(var i = 0; i < rows.length; i++)
+            if(isUnreconciled(rows[i]))
+                return rows[i];
     }
     return null;
 }
@@ -313,7 +301,7 @@ function renderReconChoices(results) {
         for(var j = 0; j < result["name"].length; j++) html += result["name"][j] + "<br/>";
         html += "</a></td><td>";
         for(var j = 0; j < result["type"].length; j++) html += result["type"][j] + "<br/>";
-        for(var j = 0; j < mqlProps.length; j++) html += "</td><td class='"+mqlProps[j].replace(/\//g,"_")+"'>";
+        for(var j = 0; j < mqlProps.length; j++) html += "</td><td class='replaceme "+mqlProps[j].replace(/\//g,"_")+"'><img src='spinner.gif'>";
         html += "</td><td>" + result["score"] + "</td></tr>";
     }
     html += "</tbody></table>";
@@ -326,7 +314,7 @@ function renderReconChoices(results) {
         var result = results[i];
         var query = {id:result["id"]};
         for (var j = 0; j < mqlProps.length; j++)
-            query[mqlProps[j]] = [{"id":null, "name":null}];
+            query[mqlProps[j]] = [{"id":null, "name":null, "optional":true}];
         var envelope = {query:query};
         $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {query:JSON.stringify(envelope)}, fillInMQLProps);
     }
@@ -338,24 +326,26 @@ function handleReconChoice(id) {
         
     setId(currentManualReconRow, id);
     currentManualReconRow = null;
-    $('#reconcileDiv').html("Loading...");
+    $('#reconcileDiv').html("Loading... <img src='spinner.gif'>");
     $("#additionalReconcile").hide();
     manualReconcile();
 }
 
-function fillInMQLProps(mqlResult, status) {
+function fillInMQLProps(mqlResult) {
     var mqlProps = getMqlProps();
-    if (mqlResult["code"] == "/api/status/ok" && mqlResult["result"] != null) {
-        var result = mqlResult["result"];
-        var row = $("tr." + result["id"].replace(/\//g,"_"));
-        for (var i = 0; i < mqlProps.length; i++) {
-            var props = result[mqlProps[i]];
-            var propHTML = "";
-            
-            for (var j = 0; j < props.length; j++)
-                propHTML = "<a target='_blank' href='"+freebase_url+"/view" + props[j]["id"] + "'>" + props[j]["name"] + "</a><br/>";
-            row.children("td." + mqlProps[i].replace(/\//g,"_")).html(propHTML);
-        }
+    if (mqlResult["code"] != "/api/status/ok" || mqlResult["result"] == null) 
+        return;
+
+    var result = mqlResult["result"];
+    var row = $("tr." + result["id"].replace(/\//g,"_"));
+    
+    for (var i = 0; i < mqlProps.length; i++) {
+        var props = result[mqlProps[i]];
+        var propHTML = "";
+        
+        for (var j = 0; j < props.length; j++)
+            propHTML += "<a target='_blank' href='"+freebase_url+"/view" + props[j]["id"] + "'>" + props[j]["name"] + "</a><br/>";
+        row.children("td." + mqlProps[i].replace(/\//g,"_")).html(propHTML);
     }
 }
 

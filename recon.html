@@ -36,7 +36,16 @@
         function handleNewSpreadsheet()
         {
             $('#spreadsheetDiv').show();
-            spreadSheetData = parseSpreadsheet($('#spreadsheet')[0].value)
+            parseSpreadsheet($('#spreadsheet')[0].value)
+            //initialize some tracking variables
+            totalRecords = rows.length;
+            remainingAutoRec = totalRecords;
+
+
+            spreadSheetData = {"aoColumns":[], "aaData":rows};
+            for (var i = 0; i < headers.length; i++)
+                spreadSheetData["aoColumns"].push({"sTitle":headers[i]});
+
             updateUnreconciledCount();
             spreadSheetData["bAutoWidth"] = false
             spreadSheetData["bSort"] = false
@@ -102,7 +111,7 @@
           </div>
 
           <div id="spreadsheetReconcile" class="container">
-              <div id="reconcileDiv" class="container">Loading...</div>
+              <div id="reconcileDiv" class="container">Loading... <img src='spinner.gif'></div>
               <div id="additionalReconcile" class='invisible'>
                 <label for="find_topic">Find Topic:</label><input type="text" name="find_topic" id="find_topic">
               </div>
