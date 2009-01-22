@@ -111,8 +111,12 @@
           </div>
 
           <div id="spreadsheetReconcile" class="container">
-              <div id="reconcileDiv" class="container">Loading... <img src='spinner.gif'></div>
-              <div id="additionalReconcile" class='invisible'>
+              <div class="manualQueueEmpty">
+                There's nothing to reconcile at the moment!  <button class='notReconciling' onclick="beginAutoReconciliation()">Click here to begin auto-reconciliation</button><span class='nowReconciling invisible'>As the auto-reconciler finds topics that it's unable to reconcile, they will appear here to give you a chance at resolving them</span>
+              </div>
+              
+              <div id="reconcileDiv" class="manualReconciliation container"></div>
+              <div id="additionalReconcile" class='manualReconciliation invisible'>
                 <label for="find_topic">Find Topic:</label><input type="text" name="find_topic" id="find_topic">
               </div>
           </div>

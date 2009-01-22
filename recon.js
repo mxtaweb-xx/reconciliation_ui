@@ -30,7 +30,7 @@
 var totalRecords = 0;
 var remainingAutoRec = 0;
 
-var manualQueueSize = 0;
+var manualQueue = [];
 var freebase_url = "http://www.freebase.com/"
 var reconciliation_url = "";
 var id_column = "id";
@@ -204,8 +204,9 @@ function autoReconcileResults(results) {
         setId(currentRow, results[0]["id"]);
     }
     else {
-        setId(currentRow, "indeterminate");
-        manualQueueSize++;
+        manualQueue.push([currentRow, results]);
+        if (manualQueue.length == 1)
+            manualReconcile();
     }
     remainingAutoRec--;
     currentRow = null;
@@ -255,9 +256,15 @@ function getCandidates(row, callback) {
 }
 
 function manualReconcile() {
-    currentManualReconRow = getFirstUnreconRow();
-    if(currentManualReconRow != null)
-        getCandidates(currentManualReconRow, renderReconChoices)
+    
+    var currentRecon = manualQueue[0];
+    if(currentRecon != undefined) {
+        $(".manualQueueEmpty").hide();
+        currentManualReconRow = currentRecon[0];
+        renderReconChoices(currentRecon[1]);
+    }
+    else
+        $(".manualQueueEmpty").show();
 }
 
 function getFirstUnreconRow() {
@@ -308,55 +315,77 @@ function renderReconChoices(results) {
         html += "<tr class='"+result["id"].replace(/\//g,"_") + " " + ["even","odd"][i % 2] +"'>";
         html += '<td><button class=\'manualSelection\' onclick="handleReconChoice(\'' + result['id'] + '\')">Select</button></td>'
         html += "<td><img src='"+freebase_url+"/api/trans/image_thumb/"+result['id']+"?maxwidth=100&maxheight=100'></td>";
-        html += "<td><a target='_blank' href='"+url+"'>";
-        for(var j = 0; j < result["name"].length; j++) html += result["name"][j] + "<br/>";
-        html += "</a></td><td>";
+        html += "<td>";
+        for(var j = 0; j < result["name"].length; j++) html += "<a target='_blank' href='"+url+"'>" + result["name"][j] + "</a><br/>";
+        html += "</td><td>";
         for(var j = 0; j < result["type"].length; j++) html += result["type"][j] + "<br/>";
         for(var j = 0; j < mqlProps.length; j++) html += "</td><td class='replaceme "+mqlProps[j].replace(/\//g,"_")+"'><img src='spinner.gif'>";
         html += "</td><td>" + result["score"] + "</td></tr>";
     }
     html += "</tbody></table>";
-    html += '<button onclick="handleReconChoice(\'indeterminate\')">Skip Record</button>';
+    html += '<button onclick="handleReconChoice()">Skip Record</button>';
 
     $('#reconcileDiv').html(html);
     $("#additionalReconcile").show();
     
     for (var i = 0; i < results.length; i++) {
         var result = results[i];
-        var query = {id:result["id"]};
-        for (var j = 0; j < mqlProps.length; j++)
-            query[mqlProps[j]] = [{"id":null, "name":null, "optional":true}];
+        var query = {"id":result["id"],
+                     "/type/reflect/any_master" : [
+                       {
+                         "link|=" : mqlProps,
+                         "link" : null,
+                         "id" : null,
+                         "name" : null,
+                         "optional" : true
+                       }
+                     ],
+                     "/type/reflect/any_value" : [
+                       {
+                         "link|=" : mqlProps,
+                         "link" : null,
+                         "value" : null,
+                         "optional" : true
+                       }
+                     ]
+                    };
         var envelope = {query:query};
         $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {query:JSON.stringify(envelope)}, fillInMQLProps);
     }
 }
 
 function handleReconChoice(id) {
-    if (currentManualReconRow[headers.indexOf(id_column)] == "indeterminate")
-        manualQueueSize -= 1;
-        
-    setId(currentManualReconRow, id);
+    manualQueue.shift();
+    if (id != undefined)
+        setId(currentManualReconRow, id);
     currentManualReconRow = null;
-    $('#reconcileDiv').html("Loading... <img src='spinner.gif'>");
+    $('#reconcileDiv').html("");
     $("#additionalReconcile").hide();
     manualReconcile();
 }
 
 function fillInMQLProps(mqlResult) {
     var mqlProps = getMqlProps();
-    if (mqlResult["code"] != "/api/status/ok" || mqlResult["result"] == null) 
+    if (mqlResult["code"] != "/api/status/ok" || mqlResult["result"] == null) {
+        //don't show annoying loading symbols indefinitely if there's an error
+        $(".replaceme").html("");
         return;
+    }
 
     var result = mqlResult["result"];
-    var row = $("tr." + result["id"].replace(/\//g,"_"));
+    var selector = "tr." + result["id"].replace(/\//g,"_");
+    var row = $(selector);
+    $(selector + " .replaceme").html("");
     
-    for (var i = 0; i < mqlProps.length; i++) {
-        var props = result[mqlProps[i]];
-        var propHTML = "";
-        
-        for (var j = 0; j < props.length; j++)
-            propHTML += "<a target='_blank' href='"+freebase_url+"/view" + props[j]["id"] + "'>" + props[j]["name"] + "</a><br/>";
-        row.children("td." + mqlProps[i].replace(/\//g,"_")).html(propHTML);
+    var props = result["/type/reflect/any_master"].concat(
+                result["/type/reflect/any_value"]);
+    for (var i = 0; i < props.length; i++) {
+        var prop = props[i];
+        var cell = row.children("td." + prop["link"].replace(/\//g,"_"));
+        if (prop["value"] != undefined)
+            cell.html(cell.html() + prop["value"] + " <br/>");
+        else
+            cell.html(cell.html() + "<a target='_blank' href='"+freebase_url+"/view"+prop["id"]+"'>" + prop["name"] + "</a><br/>")
     }
 }
 
@@ -386,5 +415,5 @@ function setId(row, id) {
 
 function updateUnreconciledCount() {
     $("#progressbar").reportprogress((((totalRecords - remainingAutoRec) / totalRecords) * 100));
-    $(".manual_count").html("("+manualQueueSize+")");
+    $(".manual_count").html("("+manualQueue.length+")");
 }
