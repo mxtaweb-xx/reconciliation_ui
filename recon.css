@@ -135,3 +135,19 @@ a.optionsButton {
 .clear {
     clear: both;
 }
+
+tr.selected {
+    background-color: #bbf;
+}
+
+tr button.manualSelection {
+    visibility: hidden;
+}
+
+button.skipButton {
+    margin-right: 10px;
+}
+
+label.findItem {
+    margin-left: 10px;
+}

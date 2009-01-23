@@ -263,7 +263,7 @@ function getCandidates(row, callback) {
             values[values.length] = value;
         }
     }
-    $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:5}, callback);
+    $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:4}, callback);
 }
 
 function manualReconcile() {
@@ -307,7 +307,7 @@ function renderReconChoices(results) {
     html += '</div><div class="reconciliationCandidates">';
     
         
-    html += "<h4>Candidates:</h4>";
+    html += "<h4>Select one of these Freebase topics:</h4>";
     html += "<table class='display manualReconciliationChoices'><thead>";
     var columnHeaders = ["","Image","Names","Types"].concat(mqlProps).concat(["Score"]);
     for (var i = 0; i < columnHeaders.length; i++)
@@ -317,8 +317,9 @@ function renderReconChoices(results) {
     for (var i = 0; i < results.length; i++)
         html += renderCandidate(results[i]);
     html += "</tbody></table>";
-    html += '<button onclick="handleReconChoice()">Skip Record</button>';
-    html += '<label for="find_topic">Find Topic:</label><input type="text" name="find_topic" id="find_topic"></div>';
+    html += "<h4>Or:</h4>";
+    html += '<button class="skipButton" onclick="handleReconChoice()">Skip This Item</button>';
+    html += ' | <label class="findItem" for="find_topic">Search For Another Topic:</label><input type="text" name="find_topic" id="find_topic"></div>';
     html += "<div class='clear'></div>";
     
     $('#reconcileDiv').html(html);
@@ -329,8 +330,14 @@ function renderReconChoices(results) {
       });
     
     $("table.manualReconciliationChoices tbody tr").mouseover(function() {
-        console.log($(this));
-    })
+        document.body.style.cursor='pointer';
+        $(this).addClass("selected");
+    }).mouseout(function () {
+        document.body.style.cursor='auto';
+        $(this).removeClass("selected");
+    }).click(function () {
+        $(this).click();
+    });
     $('.reconciliationCandidates table tbody tr:odd').addClass('odd');
     $('.reconciliationCandidates table tbody tr:even').addClass('even');
      
@@ -339,8 +346,8 @@ function renderReconChoices(results) {
 
 function renderCandidate(result) {
     var url = freebase_url + "/view/" + result['id'];
-    var html = "<tr class='"+idToClass(result["id"]) + "'>";
-    html += '<td><button class=\'manualSelection\' onclick="handleReconChoice(\'' + result['id'] + '\')">Select</button></td>'
+    var html = "<tr class='"+idToClass(result["id"]) + "' onclick='handleReconChoice(\"" + result['id'] + "\")'>";
+    html += '<td></td>';
     html += "<td><img src='"+freebase_url+"/api/trans/image_thumb/"+result['id']+"?maxwidth=100&maxheight=100'></td>";
     html += "<td>";
     for(var j = 0; j < result["name"].length; j++) html += "<a target='_blank' href='"+url+"'>" + result["name"][j] + "</a><br/>";
