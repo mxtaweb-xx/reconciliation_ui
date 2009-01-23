@@ -36,6 +36,13 @@ var reconciliation_url = "";
 var id_column = "id";
 var headers;
 var rows;
+var mqlProps;
+
+var currentRow = null;
+var spreadSheetData = null;
+var spreadSheetTable;
+var currentReconRowId = -1;
+
 
 function setReconciliationURL() {
     if (window.location.href.substring(0,4) == "file") {
@@ -48,7 +55,6 @@ function setReconciliationURL() {
 }
 
 function parseSpreadsheet(spreadsheet) {
-    spreadsheet.replace(/\r/g, "")
     var position = 0;
     
 
@@ -129,6 +135,12 @@ function parseSpreadsheet(spreadsheet) {
         headers.push(id_column);
     else if (contains(headers, "/type/object/id"))
         id_column = "/type/object/id"
+    
+    mqlProps = [];
+    for(var i =0; i < headers.length; i++)
+        if (!contains(["/type/object/name","/type/object/type","id","/type/object/id"], headers[i]) && headers[i][0] == "/")
+            mqlProps.push(headers[i]);
+
         
     var id_column_num = headers.indexOf(id_column);
     rows = [];
@@ -242,9 +254,8 @@ function getNextAutoReconRow() {
 
 function getCandidates(row, callback) {
     var query = {}
-    var props = getProps();
-    for(var i = 0; i < props.length - 1; i++) {
-        var prop = props[i];
+    for(var i = 0; i < headers.length - 1; i++) {
+        var prop = headers[i];
         var value = row[i];
         if(!(value == undefined || value == null || value == "")) {
             if(!(prop in query)) query[prop] = [];
@@ -283,51 +294,60 @@ function contains(array, value) {
     return false;
 }
 
-function renderReconChoices(results) {
-    $('#reconcileDiv').empty();
+function idToClass(idName) {
+    return idName.replace(/\//g,"_")
+}
+
+function renderReconChoices(results) {    
     var html = "";
-    html = '<b>Current Record:</b><br/><table class="display currentRecord"><thead><tr>';
-
-    var props = getProps();
-    for(var i = 0; i < props.length; i++) 
-        html += '<th>' + props[i] + '</th>';
-    html += '</tr></thead><tbody><tr>';
-
-    for(var i = 0; i < currentManualReconRow.length; i++)
-        html += '<td>' + currentManualReconRow[i] + '</td>';
-    html += '</tr></tbody></table><p/>';
     
+    html = '<div class="currentRecord"><h4>Current Record:</h4>';
+    for(var i = 0; i < headers.length; i++)
+        html += '<label for=' + idToClass(headers[i]) + ">" + headers[i] + ":</label><div>" + currentManualReconRow[i] + '</div>';
+    html += '</div><div class="reconciliationCandidates">';
     
-    html += "<b>Candidates:</b><br/>";
+        
+    html += "<h4>Candidates:</h4>";
     html += "<table class='display manualReconciliationChoices'><thead>";
-    
-    var mqlProps = getMqlProps();
-    var headers = ["","Image","Names","Types"].concat(mqlProps).concat(["Score"]);
-    for (var i = 0; i < headers.length; i++)
-        html += "<th>" + headers[i] + "</th>";
+    var columnHeaders = ["","Image","Names","Types"].concat(mqlProps).concat(["Score"]);
+    for (var i = 0; i < columnHeaders.length; i++)
+        html += "<th>" + columnHeaders[i] + "</th>";
     html += "</thead><tbody>";
     
-    for (var i = 0; i < results.length; i++) {
-        var result = results[i];
-        var url = freebase_url + "/view/" + result['id'];
-        
-        
-        html += "<tr class='"+result["id"].replace(/\//g,"_") + " " + ["even","odd"][i % 2] +"'>";
-        html += '<td><button class=\'manualSelection\' onclick="handleReconChoice(\'' + result['id'] + '\')">Select</button></td>'
-        html += "<td><img src='"+freebase_url+"/api/trans/image_thumb/"+result['id']+"?maxwidth=100&maxheight=100'></td>";
-        html += "<td>";
-        for(var j = 0; j < result["name"].length; j++) html += "<a target='_blank' href='"+url+"'>" + result["name"][j] + "</a><br/>";
-        html += "</td><td>";
-        for(var j = 0; j < result["type"].length; j++) html += result["type"][j] + "<br/>";
-        for(var j = 0; j < mqlProps.length; j++) html += "</td><td class='replaceme "+mqlProps[j].replace(/\//g,"_")+"'><img src='spinner.gif'>";
-        html += "</td><td>" + result["score"] + "</td></tr>";
-    }
+    for (var i = 0; i < results.length; i++)
+        html += renderCandidate(results[i]);
     html += "</tbody></table>";
     html += '<button onclick="handleReconChoice()">Skip Record</button>';
-
-    $('#reconcileDiv').html(html);
-    $("#additionalReconcile").show();
+    html += '<label for="find_topic">Find Topic:</label><input type="text" name="find_topic" id="find_topic"></div>';
+    html += "<div class='clear'></div>";
     
+    $('#reconcileDiv').html(html);
+    $("#find_topic")
+      .freebaseSuggest()
+      .bind("fb-select", function(e, data) { 
+        handleReconChoice(data.id);
+      });
+    $('.reconciliationCandidates table tbody tr:odd').addClass('odd');
+    $('.reconciliationCandidates table tbody tr:even').addClass('even');
+     
+    fetchMqlProps(results);
+}
+
+function renderCandidate(result) {
+    var url = freebase_url + "/view/" + result['id'];
+    var html = "<tr class='"+idToClass(result["id"]) + "'>";
+    html += '<td><button class=\'manualSelection\' onclick="handleReconChoice(\'' + result['id'] + '\')">Select</button></td>'
+    html += "<td><img src='"+freebase_url+"/api/trans/image_thumb/"+result['id']+"?maxwidth=100&maxheight=100'></td>";
+    html += "<td>";
+    for(var j = 0; j < result["name"].length; j++) html += "<a target='_blank' href='"+url+"'>" + result["name"][j] + "</a><br/>";
+    html += "</td><td>";
+    for(var j = 0; j < result["type"].length; j++) html += result["type"][j] + "<br/>";
+    for(var j = 0; j < mqlProps.length; j++) html += "</td><td class='replaceme "+idToClass(mqlProps[j])+"'><img src='spinner.gif'>";
+    html += "</td><td>" + result["score"] + "</td></tr>";
+    return html;
+}
+
+function fetchMqlProps(results) {
     for (var i = 0; i < results.length; i++) {
         var result = results[i];
         var query = {"id":result["id"],
@@ -354,6 +374,30 @@ function renderReconChoices(results) {
     }
 }
 
+function fillInMQLProps(mqlResult) {
+    if (mqlResult["code"] != "/api/status/ok" || mqlResult["result"] == null) {
+        //don't show annoying loading symbols indefinitely if there's an error
+        $(".replaceme").html("");
+        return;
+    }
+
+    var result = mqlResult["result"];
+    var selector = "tr." + idToClass(result["id"]);
+    var row = $(selector);
+    $(selector + " .replaceme").html("");
+    
+    var props = result["/type/reflect/any_master"].concat(
+                result["/type/reflect/any_value"]);
+    for (var i = 0; i < props.length; i++) {
+        var prop = props[i];
+        var cell = row.children("td." + idToClass(prop["link"]));
+        if (prop["value"] != undefined)
+            cell.html(cell.html() + prop["value"] + " <br/>");
+        else
+            cell.html(cell.html() + "<a target='_blank' href='"+freebase_url+"/view"+prop["id"]+"'>" + prop["name"] + "</a><br/>")
+    }
+}
+
 function handleReconChoice(id) {
     manualQueue.shift();
     if (id != undefined)
@@ -362,44 +406,6 @@ function handleReconChoice(id) {
     $('#reconcileDiv').html("");
     $("#additionalReconcile").hide();
     manualReconcile();
-}
-
-function fillInMQLProps(mqlResult) {
-    var mqlProps = getMqlProps();
-    if (mqlResult["code"] != "/api/status/ok" || mqlResult["result"] == null) {
-        //don't show annoying loading symbols indefinitely if there's an error
-        $(".replaceme").html("");
-        return;
-    }
-
-    var result = mqlResult["result"];
-    var selector = "tr." + result["id"].replace(/\//g,"_");
-    var row = $(selector);
-    $(selector + " .replaceme").html("");
-    
-    var props = result["/type/reflect/any_master"].concat(
-                result["/type/reflect/any_value"]);
-    for (var i = 0; i < props.length; i++) {
-        var prop = props[i];
-        var cell = row.children("td." + prop["link"].replace(/\//g,"_"));
-        if (prop["value"] != undefined)
-            cell.html(cell.html() + prop["value"] + " <br/>");
-        else
-            cell.html(cell.html() + "<a target='_blank' href='"+freebase_url+"/view"+prop["id"]+"'>" + prop["name"] + "</a><br/>")
-    }
-}
-
-function getProps() {
-    return headers;
-}
-
-function getMqlProps() {
-    var props = getProps();
-    var mqlProps = [];
-    for(var i =0; i < props.length; i++)
-        if (!contains(["/type/object/name","/type/object/type","id","/type/object/id"], props[i]) && props[i][0] == "/")
-            mqlProps.push(props[i]);
-    return mqlProps;
 }
 
 function isUnreconciled(row) {

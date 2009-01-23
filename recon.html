@@ -25,17 +25,8 @@
     <script type="text/javascript" language="javascript" src="recon.js"></script>
     <script type="text/javascript" language="javascript" src="sampledata.js"></script>
     <script type="text/javascript" language="javascript" charset="utf-8">
-    
-        var currentRow = null;
-        var currentManualReconRoad = null;
-        var tabs;
-        var spreadSheetData = null;
-        var spreadSheetTable;
-        var currentReconRowId = -1;
-
         function handleNewSpreadsheet()
         {
-            $('#spreadsheetDiv').show();
             parseSpreadsheet($('#spreadsheet')[0].value)
             //initialize some tracking variables
             totalRecords = rows.length;
@@ -49,16 +40,22 @@
             updateUnreconciledCount();
             spreadSheetData["bAutoWidth"] = false
             spreadSheetData["bSort"] = false
+            $("#spreadsheetDiv").html('<table class="display" id="spreadsheetTable"></table>');
             spreadSheetTable = $('#spreadsheetTable').dataTable(spreadSheetData)
             $('#spreadsheetInput').hide();
-            tabs = $("#tabs > ul");
-            tabs.tabs();
-            tabs.bind("tabsselect", function(event, ui) {
-                if(ui.index == 1) manualReconcile();
-                else if (ui.index == 2) renderSpreadsheet();
-            });
-            $("#tabs").show();
-            tabs.tabs("select", 0);
+            $('#spreadsheetPreview').show();
+        }
+        function continueToReconciliation() {
+          $("#spreadsheetPreview").hide();
+          var tabs = $("#tabs > ul");
+          tabs.tabs();
+          tabs.bind("tabsselect", function(event, ui) {
+              if(ui.index == 0) manualReconcile();
+              else if (ui.index == 1) renderSpreadsheet();
+          });
+          $("#tabs").show();
+          tabs.tabs("select", 0);
+          beginAutoReconciliation();
         }
 
         $(document).ready(function() {
@@ -75,54 +72,47 @@
               input.value = eval(input.id);
             });
             
-            $("#find_topic")
-              .freebaseSuggest()
-              .bind("fb-select", function(e, data) { 
-                handleReconChoice(data.id);
-              });
         });
     </script>
 </head>
 <body id="dt_example">
     <div id='main_app'>
       <div id="spreadsheetInput" class="container">
-          <b>Copy your spreadsheet here:</b><br/>
+          <h3>Copy your spreadsheet here:</h3>
           <textarea rows="15" cols="80" name="spreadsheet" id="spreadsheet"></textarea><br/>
           <button onclick="handleNewSpreadsheet()">Parse Spreadsheet</button>
           <button onclick="$('#spreadsheet')[0].value = sampleData">Sample Data</button>
           <p/>
       </div>
     
+      <div id="spreadsheetPreview" class="container invisible">
+          <h3>Does this look right?</h3>
+          <div id="spreadsheetDiv" class="container">
+          </div>
+          <br/>
+          <button onclick='$("#spreadsheetInput").show();$("#spreadsheetPreview").hide()'>&lt; Back</button>
+          <button style='float:right' onclick='continueToReconciliation();'>Continue &gt;</button>
+      </div>
+    
       <div id="tabs" class="invisible">
           <ul>
-              <li><a href="#spreadsheetPreview"><span>Browse Data</span></a></li>
               <li><a href="#spreadsheetReconcile"><span>Reconcile Record <span class="manual_count">(0)</span></span></a></li>
               <li><a href="#spreadsheetRender"><span>Retrieve Spreadsheet</span></a></li>
           </ul>
 
 
-          <div id="spreadsheetPreview" class="container">
-              <div id="spreadsheetDiv" class="container invisible">
-                <table cellpadding="0" cellspacing="0" border="0" class="display" id="spreadsheetTable"></table>
-                <br/>
-                <button class='notReconciling' onclick="beginAutoReconciliation()">Auto-Reconcile</button>
-                <button class='nowReconciling invisible' onclick="stopReconciliation()">Stop Auto-Reconciliation</button>
-              </div>
-          </div>
 
-          <div id="spreadsheetReconcile" class="container">
+          <div id="spreadsheetReconcile" class="">
               <div class="manualQueueEmpty">
-                There's nothing to reconcile at the moment!  <button class='notReconciling' onclick="beginAutoReconciliation()">Click here to begin auto-reconciliation</button><span class='nowReconciling invisible'>As the auto-reconciler finds topics that it's unable to reconcile, they will appear here to give you a chance at resolving them</span>
+                <h3>Everything's working fine automatically</h3>  
+                As the auto-reconciler finds topics that it's unable to reconcile, they will appear here to give you a chance at resolving them
               </div>
               
-              <div id="reconcileDiv" class="manualReconciliation container"></div>
-              <div id="additionalReconcile" class='manualReconciliation invisible'>
-                <label for="find_topic">Find Topic:</label><input type="text" name="find_topic" id="find_topic">
-              </div>
+              <div id="reconcileDiv" class="manualReconciliation"></div>
           </div>
 
           <div id="spreadsheetRender" class="container">
-              <b>Copy your updated spreadsheet from here:</b><br/>
+              <h3>Copy your updated spreadsheet from here:</h3>
               <textarea rows="15" cols="80" name="outputSpreadSheet" id="outputSpreadSheet"></textarea><br/>
               <p/>
           </div>
