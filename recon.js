@@ -327,6 +327,10 @@ function renderReconChoices(results) {
       .bind("fb-select", function(e, data) { 
         handleReconChoice(data.id);
       });
+    
+    $("table.manualReconciliationChoices tbody tr").mouseover(function() {
+        console.log($(this));
+    })
     $('.reconciliationCandidates table tbody tr:odd').addClass('odd');
     $('.reconciliationCandidates table tbody tr:even').addClass('even');
      
