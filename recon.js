@@ -329,15 +329,6 @@ function renderReconChoices(results) {
         handleReconChoice(data.id);
       });
     
-    $("table.manualReconciliationChoices tbody tr").mouseover(function() {
-        document.body.style.cursor='pointer';
-        $(this).addClass("selected");
-    }).mouseout(function () {
-        document.body.style.cursor='auto';
-        $(this).removeClass("selected");
-    }).click(function () {
-        $(this).click();
-    });
     $('.reconciliationCandidates table tbody tr:odd').addClass('odd');
     $('.reconciliationCandidates table tbody tr:even').addClass('even');
      
@@ -346,8 +337,8 @@ function renderReconChoices(results) {
 
 function renderCandidate(result) {
     var url = freebase_url + "/view/" + result['id'];
-    var html = "<tr class='"+idToClass(result["id"]) + "' onclick='handleReconChoice(\"" + result['id'] + "\")'>";
-    html += '<td></td>';
+    var html = "<tr class='"+idToClass(result["id"]) + "'>";
+    html += '<td><button class=\'manualSelection\' onclick="handleReconChoice(\'' + result['id'] + '\')">Select</button></td>'
     html += "<td><img src='"+freebase_url+"/api/trans/image_thumb/"+result['id']+"?maxwidth=100&maxheight=100'></td>";
     html += "<td>";
     for(var j = 0; j < result["name"].length; j++) html += "<a target='_blank' href='"+url+"'>" + result["name"][j] + "</a><br/>";

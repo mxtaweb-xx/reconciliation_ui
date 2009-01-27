@@ -136,14 +136,6 @@ a.optionsButton {
     clear: both;
 }
 
-tr.selected {
-    background-color: #bbf;
-}
-
-tr button.manualSelection {
-    visibility: hidden;
-}
-
 button.skipButton {
     margin-right: 10px;
 }
