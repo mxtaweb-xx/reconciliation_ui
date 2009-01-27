@@ -308,7 +308,7 @@ function renderReconChoices(results) {
     
         
     html += "<h4>Select one of these Freebase topics:</h4>";
-    html += "<table class='display manualReconciliationChoices'><thead>";
+    html += "<table class='manualReconciliationChoices'><thead>";
     var columnHeaders = ["","Image","Names","Types"].concat(mqlProps).concat(["Score"]);
     for (var i = 0; i < columnHeaders.length; i++)
         html += "<th>" + columnHeaders[i] + "</th>";

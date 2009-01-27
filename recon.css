@@ -81,6 +81,12 @@ ul {
 }
 
 
+table.manualReconciliationChoices thead th {
+    padding: 3px 10px;
+	border-bottom: 1px solid black;
+	font-weight: bold;
+	cursor: default;
+}
 
 table.manualReconciliationChoices tbody tr {
     height: 100px;
