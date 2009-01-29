@@ -257,10 +257,13 @@ function getCandidates(row, callback) {
     for(var i = 0; i < headers.length - 1; i++) {
         var prop = headers[i];
         var value = row[i];
-        if(!(value == undefined || value == null || value == "")) {
-            if(!(prop in query)) query[prop] = [];
-            var values = query[prop];
-            values[values.length] = value;
+        if (value != undefined && value != null && value != "") {
+            if(query[prop] == undefined)
+                query[prop] = [];
+            if (typeof(value) == "string")
+                query[prop].push(value);
+            else
+                query[prop] = query[prop].concat(value);
         }
     }
     $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:4}, callback);
@@ -424,4 +427,40 @@ function setId(row, id) {
 function updateUnreconciledCount() {
     $("#progressbar").reportprogress((((totalRecords - remainingAutoRec) / totalRecords) * 100));
     $(".manual_count").html("("+manualQueue.length+")");
+}
+
+
+function combineRows() {
+    var rowIndex = undefined;
+    while(rowIndex = getAmbiguousRowIndex(rowIndex)) {
+        var row = rows[rowIndex];
+        var i;
+        for (i = rowIndex+1; i < rows.length && rows[i][0] == "";i++) {
+            for (var j = 0; j<headers.length; j++) {
+                if (rows[i][j] == "")
+                    continue;
+                if (typeof(row[j]) == "string")
+                    row[j] = [row[j], rows[i][j]];
+                else
+                    row[j].push(rows[i][j]);
+            }
+        }
+        //remove the rows that we've combined in
+        rows.splice(rowIndex+1, (i - rowIndex) - 1);
+    }
+}
+
+function getAmbiguousRowIndex(from) {
+    if (from == undefined)
+        from = -1;
+    from++;
+
+    var startingRowIdx;
+    for(var i = from; i < rows.length; i++) {
+        if (rows[i][0] != "")
+            startingRowIdx = i;
+        else if (startingRowIdx != undefined)
+            return startingRowIdx;
+    }
+    return undefined;
 }

@@ -31,19 +31,66 @@
             //initialize some tracking variables
             totalRecords = rows.length;
             remainingAutoRec = totalRecords;
-
-
-            spreadSheetData = {"aoColumns":[], "aaData":rows};
+            $("#spreadsheetInput").hide();
+            
+            var ambiguityStart = getAmbiguousRowIndex();
+            if (ambiguityStart != undefined)
+                showAmbiguousRowPrompt(ambiguityStart);
+            else
+                showConfirmationSpreadsheet();            
+        }
+        function showAmbiguousRowPrompt(startingRowIdx) {
+            var headersHTML = "";
             for (var i = 0; i < headers.length; i++)
-                spreadSheetData["aoColumns"].push({"sTitle":headers[i]});
-
-            updateUnreconciledCount();
-            spreadSheetData["bAutoWidth"] = false
-            spreadSheetData["bSort"] = false
-            $("#spreadsheetDiv").html('<table class="display" id="spreadsheetTable"></table>');
-            spreadSheetTable = $('#spreadsheetTable').dataTable(spreadSheetData)
-            $('#spreadsheetInput').hide();
-            $('#spreadsheetPreview').show();
+              headersHTML += "<th>" + headers[i] + "</th>";
+            $("#formatDisambiguation table thead tr.headers").html(headersHTML);
+            
+            var rowHTML = function(row){
+              var html = "<tr>";
+              for (var i = 0; i < headers.length; i++) {
+                html += "<td>" 
+                if (typeof(row[i]) == "string")
+                  html += row[i];
+                else
+                  for (var j = 0; j < row[i].length; j++)
+                    html += row[i][j] + "<br/>";
+                html += "</td>";
+              }
+              return html + "</tr>";
+            } 
+            
+            var separateRows = rowHTML(rows[startingRowIdx]);
+            for (var i = startingRowIdx + 1; i < rows.length && rows[i][0] == ""; i++)
+              separateRows += rowHTML(rows[i]);
+            $("#separateRows tbody").html(separateRows);
+            
+            var row = rows[startingRowIdx].slice();
+            for (var i = startingRowIdx + 1; i < rows.length && rows[i][0] == ""; i++){
+              for (var j = 0; j<headers.length; j++){
+                if (typeof(row[j]) == "string")
+                  row[j] = [row[j], rows[i][j]];
+                else
+                  row[j].push(rows[i][j]);
+              }
+            }    
+            
+            $("#combineRows tbody").html(rowHTML(row));
+            $('#formatDisambiguation table tbody tr:odd').addClass('odd');
+            $('#formatDisambiguation table tbody tr:even').addClass('even');
+            $("#formatDisambiguation").show();
+        }
+        function showConfirmationSpreadsheet() {
+          spreadSheetData = {"aoColumns":[], "aaData":rows};
+          for (var i = 0; i < headers.length; i++)
+              spreadSheetData["aoColumns"].push({"sTitle":headers[i]});
+          
+          updateUnreconciledCount();
+          spreadSheetData["bAutoWidth"] = false
+          spreadSheetData["bSort"] = false
+          $("#spreadsheetDiv").html('<table class="display" id="spreadsheetTable"></table>');
+          spreadSheetTable = $('#spreadsheetTable').dataTable(spreadSheetData)
+          $('#spreadsheetInput').hide();
+          $('#spreadsheetPreview').show();
         }
         function continueToReconciliation() {
           $("#spreadsheetPreview").hide();
@@ -85,6 +132,37 @@
           <p/>
       </div>
     
+      <div id="formatDisambiguation" class="container invisible">
+          <h3>Which of these is correct?</h3>
+          <div class='selection' id='separateRows'>
+            <button onclick='$("#formatDisambiguation").hide(); showConfirmationSpreadsheet();'>
+              Each row is separate
+            </button>
+            <table>
+              <thead>
+                <tr class='headers'></tr>
+              </thead>
+              <tbody>
+                
+              </tbody>
+            </table>
+          </div>
+
+          <div class='selection' id='combineRows'>
+            <button onclick='combineRows(); $("#formatDisambiguation").hide(); showConfirmationSpreadsheet();'>
+              Combine rows missing the first column
+            </button>
+            <table>
+              <thead>
+                <tr class='headers'></tr>
+              </thead>
+              <tbody>
+              
+              </tbody>
+            </table>
+          </div>
+      </div>
+    
       <div id="spreadsheetPreview" class="container invisible">
           <h3>Does this look right?</h3>
           <div id="spreadsheetDiv" class="container">
@@ -93,7 +171,9 @@
           <button onclick='$("#spreadsheetInput").show();$("#spreadsheetPreview").hide()'>&lt; Back</button>
           <button style='float:right' onclick='continueToReconciliation();'>Continue &gt;</button>
       </div>
-    
+      
+
+      
       <div id="tabs" class="invisible">
           <ul>
               <li><a href="#spreadsheetReconcile"><span>Reconcile Record <span class="manual_count">(0)</span></span></a></li>
