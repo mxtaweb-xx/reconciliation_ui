@@ -43,7 +43,6 @@ var spreadSheetData = null;
 var spreadSheetTable;
 var currentReconRowId = -1;
 
-
 function setReconciliationURL() {
     if (window.location.href.substring(0,4) == "file") {
         reconciliation_url = "http://www.mqlx.com/reconciliation/";
@@ -155,17 +154,36 @@ function parseSpreadsheet(spreadsheet) {
 function renderSpreadsheet() {
     function encodeLine(arr) {
         var values = [];
-        for(var i = 0; i < arr.length; i++){
+        for(var i = 0; i < headers.length; i++){
             var val = arr[i];
-            val.replace(/"/g, '""');
+            if (val == undefined) {
+                values.push("");
+                continue;
+            }
+            val = val.replace(/"/g, '""');
             values.push('"' + val + '"');
         }
         return values.join("\t");
     }
+    function encodeRow(row) {
+        var lines = [[]];
+        for (var i = 0; i < headers.length; i++){
+            if (typeof(row[i]) == "string")
+                lines[0][i] = row[i];
+            else {
+                //array of values
+                for (var j = 0; j < row[i].length; j++) {
+                    if (lines[j] == undefined) lines[j] = [];
+                    lines[j][i] = row[i][j];
+                }
+            }
+        }
+        return $.map(lines,encodeLine);
+    }
     var lines = [];
     lines.push(encodeLine(headers));
     for (var i = 0; i < rows.length; i++)
-        lines.push(encodeLine(rows[i]));
+        lines = lines.concat(encodeRow(rows[i]));
 
     $("#outputSpreadSheet")[0].value = lines.join("\n");
 }
@@ -420,7 +438,6 @@ function isUnreconciled(row) {
 
 function setId(row, id) {
     row[headers.indexOf(id_column)] = id;
-    spreadSheetTable.fnDraw();
     updateUnreconciledCount();
 }
 
