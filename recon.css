@@ -102,8 +102,14 @@ table.currentRecord {
 
 #progresscontainer {
     position:absolute;
-    top:2px;
-    right:2px;
+    width: 50%;
+    top:1px;
+    right:1px;
+}
+#progressbar label {
+    position: absolute;
+    left: 50%;
+    top: 5px;
 }
 
 a.optionsButton {

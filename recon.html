@@ -7,7 +7,6 @@
     
     <link rel="stylesheet" href="lib/dataTables/media/css/demos.css" type="text/css" media="screen" charset="utf-8">
     <link rel="stylesheet" href="lib/jquery.ui/themes/cupertino/ui.all.css" type="text/css" media="screen" title="Cupertino" charset="utf-8">
-    <link rel="stylesheet" href="lib/progressbar/progressbar.css" type="text/css" media="screen" charset="utf-8">
     <link rel="stylesheet" href="lib/suggest/freebase-controls.css" type="text/css" media="screen" charset="utf-8">
     <link rel="stylesheet" href="lib/suggest/jquery.freebase.minitopic.css" type="text/css" media="screen" charset="utf-8">
 
@@ -17,8 +16,9 @@
     <script type="text/javascript" language="javascript" src="lib/jquery.js"></script>
     <script type="text/javascript" language="javascript" src="lib/jquery.ui/ui/ui.core.js"></script>
     <script type="text/javascript" language="javascript" src="lib/jquery.ui/ui/ui.tabs.js"></script>
+    <script type="text/javascript" language="javascript" src="lib/jquery.ui/ui/ui.progressbar.js"></script>
     <script type="text/javascript" language="javascript" src="lib/dataTables/media/js/jquery.dataTables.js"></script>
-    <script type="text/javascript" language="javascript" src="lib/progressbar/jqueryprogressbar.js"></script>
+
     <script type="text/javascript" language="javascript" src="lib/suggest/jquery.freebase.minitopic.js"></script>
     <script type="text/javascript" language="javascript" src="lib/suggest/freebase.suggest.js"></script>
 
@@ -118,6 +118,7 @@
               });
               input.value = eval(input.id);
             });
+            $("#progressbar").progressbar({value:0});
             
         });
     </script>
@@ -198,7 +199,9 @@
           </div>
       </div>
       <div id="progresscontainer" class="nowReconciling invisible">
-        <div id='progressbar'></div>
+        <div id='progressbar'>
+          <label>50%</label>
+        </div>
       </div>
       
       <a href="#optionsPanel" class='optionsButton' onClick='$("#main_app").hide();$("#optionsPanel").show(); return false;'>Options</a>

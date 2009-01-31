@@ -442,7 +442,9 @@ function setId(row, id) {
 }
 
 function updateUnreconciledCount() {
-    $("#progressbar").reportprogress((((totalRecords - remainingAutoRec) / totalRecords) * 100));
+    var pctProgress = (((totalRecords - remainingAutoRec) / totalRecords) * 100);
+    $("#progressbar").progressbar("value", pctProgress);
+    $("#progressbar label").html(pctProgress.toFixed(1) + "%")
     $(".manual_count").html("("+manualQueue.length+")");
 }
 
