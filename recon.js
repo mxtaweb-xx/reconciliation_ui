@@ -43,6 +43,25 @@ var spreadSheetData = null;
 var spreadSheetTable;
 var currentReconRowId = -1;
 
+function node(kind) {
+    var node = $(document.createElement(arguments[0]));
+    var options = arguments[arguments.length-1]
+    var len = arguments.length - 1;
+    if (typeof options == "object" && options.insertAfter == undefined){
+        if (options["onclick"] != undefined) {
+            node.click(options["onclick"]);
+            delete options["onclick"];
+        }
+        node.attr(options);
+    }
+    else
+        len = arguments.length;
+    
+    for (var i = 1; i < len; i++)
+        node.append(arguments[i]);
+    return node;
+}
+
 function setReconciliationURL() {
     if (window.location.href.substring(0,4) == "file") {
         reconciliation_url = "http://www.mqlx.com/reconciliation/";
@@ -278,10 +297,7 @@ function getCandidates(row, callback) {
         if (value != undefined && value != null && value != "") {
             if(query[prop] == undefined)
                 query[prop] = [];
-            if (typeof(value) == "string")
-                query[prop].push(value);
-            else
-                query[prop] = query[prop].concat(value);
+            query[prop] = query[prop].concat($.makeArray(value));
         }
     }
     $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:4}, callback);
@@ -292,11 +308,15 @@ function manualReconcile() {
     var currentRecon = manualQueue[0];
     if(currentRecon != undefined) {
         $(".manualQueueEmpty").hide();
+        $(".manualReconciliation").show();
         currentManualReconRow = currentRecon[0];
         renderReconChoices(currentRecon[1]);
     }
-    else
+    else{
         $(".manualQueueEmpty").show();
+        $(".manualReconciliation").hide();
+    }
+        
 }
 
 function getFirstUnreconRow() {
@@ -320,36 +340,20 @@ function idToClass(idName) {
 }
 
 function renderReconChoices(results) {    
-    var html = "";
-    
-    html = '<div class="currentRecord"><h4>Current Record:</h4>';
-    for(var i = 0; i < headers.length; i++)
-        html += '<label for=' + idToClass(headers[i]) + ">" + headers[i] + ":</label><div>" + currentManualReconRow[i] + '</div>';
-    html += '</div><div class="reconciliationCandidates">';
-    
-        
-    html += "<h4>Select one of these Freebase topics:</h4>";
-    html += "<table class='manualReconciliationChoices'><thead>";
+    var currentRecord = $("#recordVals").empty();
+    for(var i = 0; i < headers.length; i++){
+        currentRecord.append(node("label", headers[i] + ":", {"for":idToClass(headers[i])}));
+        currentRecord.append(node("div",currentManualReconRow[i]));
+    }
+    var tableHeader = $(".reconciliationCandidates table thead").empty();
     var columnHeaders = ["","Image","Names","Types"].concat(mqlProps).concat(["Score"]);
     for (var i = 0; i < columnHeaders.length; i++)
-        html += "<th>" + columnHeaders[i] + "</th>";
-    html += "</thead><tbody>";
+        tableHeader.append(node("th",columnHeaders[i]));
     
+    var tableBody = $(".reconciliationCandidates table tbody").empty();
     for (var i = 0; i < results.length; i++)
-        html += renderCandidate(results[i]);
-    html += "</tbody></table>";
-    html += "<h4>Or:</h4>";
-    html += '<button class="skipButton" onclick="handleReconChoice()">Skip This Item</button>';
-    html += ' | <label class="findItem" for="find_topic">Search For Another Topic:</label><input type="text" name="find_topic" id="find_topic"></div>';
-    html += "<div class='clear'></div>";
-    
-    $('#reconcileDiv').html(html);
-    $("#find_topic")
-      .freebaseSuggest()
-      .bind("fb-select", function(e, data) { 
-        handleReconChoice(data.id);
-      });
-    
+        tableBody.append(renderCandidate(results[i]));
+
     $('.reconciliationCandidates table tbody tr:odd').addClass('odd');
     $('.reconciliationCandidates table tbody tr:even').addClass('even');
      
@@ -358,16 +362,31 @@ function renderReconChoices(results) {
 
 function renderCandidate(result) {
     var url = freebase_url + "/view/" + result['id'];
-    var html = "<tr class='"+idToClass(result["id"]) + "'>";
-    html += '<td><button class=\'manualSelection\' onclick="handleReconChoice(\'' + result['id'] + '\')">Select</button></td>'
-    html += "<td><img src='"+freebase_url+"/api/trans/image_thumb/"+result['id']+"?maxwidth=100&maxheight=100'></td>";
-    html += "<td>";
-    for(var j = 0; j < result["name"].length; j++) html += "<a target='_blank' href='"+url+"'>" + result["name"][j] + "</a><br/>";
-    html += "</td><td>";
-    for(var j = 0; j < result["type"].length; j++) html += result["type"][j] + "<br/>";
-    for(var j = 0; j < mqlProps.length; j++) html += "</td><td class='replaceme "+idToClass(mqlProps[j])+"'><img src='spinner.gif'>";
-    html += "</td><td>" + result["score"] + "</td></tr>";
-    return html;
+    var row = node("tr", {"class":idToClass(result["id"])});
+    
+    var button = node("button", "Select", 
+       {"class":'manualSelection', 
+        "onclick":function() {handleReconChoice(result["id"])}})
+    row.append(node("td",button));
+    
+    node("td",
+         node("img",{src:freebase_url + "/api/trans/image_thumb/"+result['id']+"?maxwidth=100&maxheight=100"})
+    ).appendTo(row);
+    
+    var names = node("td").appendTo(row);
+    for(var j = 0; j < result["name"].length; j++)
+        names.append(node("a",result["name"][j], {target:"_blank", href:url}));
+    
+    row.append(node("td",result["type"].join("<br/>")));
+    
+    for(var j = 0; j < mqlProps.length; j++)
+        row.append(
+            node("td", 
+                node("img",{src:"spinner.gif"}),
+                {"class":"replaceme "+idToClass(mqlProps[j])})
+        );
+    row.append(node("td",result["score"]));
+    return row;
 }
 
 function fetchMqlProps(results) {
@@ -426,8 +445,6 @@ function handleReconChoice(id) {
     if (id != undefined)
         setId(currentManualReconRow, id);
     currentManualReconRow = null;
-    $('#reconcileDiv').html("");
-    $("#additionalReconcile").hide();
     manualReconcile();
 }
 

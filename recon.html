@@ -118,7 +118,11 @@
               input.value = eval(input.id);
             });
             $("#progressbar").progressbar({value:0});
-            
+            $("#find_topic")
+                .freebaseSuggest()
+                .bind("fb-select", function(e, data) { 
+                  handleReconChoice(data.id);
+                });
         });
     </script>
 </head>
@@ -188,7 +192,28 @@
                 As the auto-reconciler finds topics that it's unable to reconcile, they will appear here to give you a chance at resolving them
               </div>
               
-              <div id="reconcileDiv" class="manualReconciliation"></div>
+              <div id="reconcileDiv" class="invisible manualReconciliation">
+                <div class="currentRecord">
+                  <h4>Current Record:</h4>
+                  <div id="recordVals">
+                  
+                  </div>
+                </div>
+                
+                <div class="reconciliationCandidates">
+                  <h4>Select one of these Freebase topics:</h4>
+                  <table class='manualReconciliationChoices'>
+                    <thead></thead>
+                    <tbody></tbody>
+                  </table>
+                  <h4>Or:</h4>
+                  <button class="skipButton" onclick="handleReconChoice()">Skip This Item</button>
+                  |
+                  <label class="findItem" for="find_topic">Search For Another Topic:</label>
+                  <input type="text" name="find_topic" id="find_topic">
+                </div>
+                <div class='clear'></div>
+              </div>
           </div>
 
           <div id="spreadsheetRender" class="container">
