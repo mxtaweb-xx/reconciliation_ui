@@ -213,30 +213,14 @@ function renderSpreadsheet() {
 }
 
 
-var autoReconciling = false;
 function beginAutoReconciliation() {
-    if (autoReconciling) return;
-    beginningAutoReconcile();
+    $(".nowReconciling").show();
+    $(".notReconciling").hide();
     autoReconcile();
 }
 
-function beginningAutoReconcile() {
-    stopReconciling = false;
-    autoReconciling = true;
-    $(".nowReconciling").show();
-    $(".notReconciling").hide();
-}
-
 function finishedAutoReconciling() {
-    autoReconciling = false;
     $(".nowReconciling").hide();
-    $('.notReconciling').show();
-}
-
-var stopReconciling = false;
-function stopReconciliation() {
-    stopReconciling = true;
-    $('.nowReconciling').hide();
     $('.notReconciling').show();
 }
 
@@ -264,10 +248,6 @@ function autoReconcileResults(results) {
             manualReconcile();
     }
     currentRow = null;
-    if (stopReconciling) {
-        finishedAutoReconciling();
-        return;
-    }
     autoReconcile();
 }
 
