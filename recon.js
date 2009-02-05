@@ -28,9 +28,9 @@
 
 
 var totalRecords = 0;
-var remainingAutoRec = 0;
 
 var manualQueue = [];
+var automaticQueue = [];
 var freebase_url = "http://www.freebase.com/"
 var reconciliation_url = "";
 var id_column = "id";
@@ -41,7 +41,6 @@ var mqlProps;
 var currentRow = null;
 var spreadSheetData = null;
 var spreadSheetTable;
-var currentReconRowId = -1;
 
 function node(kind) {
     var node = $(document.createElement(arguments[0]));
@@ -159,7 +158,6 @@ function parseSpreadsheet(spreadsheet) {
         if (!contains(["/type/object/name","/type/object/type","id","/type/object/id"], headers[i]) && headers[i][0] == "/")
             mqlProps.push(headers[i]);
 
-        
     var id_column_num = headers.indexOf(id_column);
     rows = [];
     while(spreadsheet[position] != undefined){
@@ -168,6 +166,13 @@ function parseSpreadsheet(spreadsheet) {
         row[id_column_num] = row[id_column_num] || "";
         rows.push(row);
     }
+}
+
+function spreadsheetParsed() {
+    totalRecords = rows.length;
+    for (var i = 0; i < rows.length; i++)
+        if (isUnreconciled(rows[i]))
+            automaticQueue.push(rows[i]);
 }
 
 function renderSpreadsheet() {
@@ -207,6 +212,7 @@ function renderSpreadsheet() {
     $("#outputSpreadSheet")[0].value = lines.join("\n");
 }
 
+
 var autoReconciling = false;
 function beginAutoReconciliation() {
     if (autoReconciling) return;
@@ -234,7 +240,7 @@ function stopReconciliation() {
     $('.notReconciling').show();
 }
 
-function autoReconcile() {    
+function autoReconcile() {
     currentRow = getNextAutoReconRow();
     if(currentRow == null) {
         finishedAutoReconciling();
@@ -257,7 +263,6 @@ function autoReconcileResults(results) {
         if (manualQueue.length == 1)
             manualReconcile();
     }
-    remainingAutoRec--;
     currentRow = null;
     if (stopReconciling) {
         finishedAutoReconciling();
@@ -267,26 +272,11 @@ function autoReconcileResults(results) {
 }
 
 function getNextAutoReconRow() {
-    // we've walked the list, terminate:
-    if(currentReconRowId >= rows.length) {
-        currentRowId = -1;
+    if (automaticQueue.length == 0)
         return null;
-    }
-    
-    // we're just starting out:
-    if(currentReconRowId < 0) 
-        currentReconRowId = 0;
-    // skip already reconciled stuff:
-    while(currentReconRowId < rows.length && !isUnreconciled(rows[currentReconRowId])) {
-        remainingAutoRec--;
-        currentReconRowId++;
-    }
+    var result = automaticQueue.shift();
     updateUnreconciledCount();
-    if(currentReconRowId >= rows.length)
-        return null;
-
-    currentReconRowId++;
-    return rows[currentReconRowId-1];;
+    return result;
 }
 
 function getCandidates(row, callback) {
@@ -459,7 +449,7 @@ function setId(row, id) {
 }
 
 function updateUnreconciledCount() {
-    var pctProgress = (((totalRecords - remainingAutoRec) / totalRecords) * 100);
+    var pctProgress = (((totalRecords - automaticQueue.length) / totalRecords) * 100);
     $("#progressbar").progressbar("value", pctProgress);
     $("#progressbar label").html(pctProgress.toFixed(1) + "%")
     $(".manual_count").html("("+manualQueue.length+")");

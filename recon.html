@@ -29,15 +29,14 @@
         {
             parseSpreadsheet($('#spreadsheet')[0].value)
             //initialize some tracking variables
-            totalRecords = rows.length;
-            remainingAutoRec = totalRecords;
+
             $("#spreadsheetInput").hide();
             
             var ambiguityStart = getAmbiguousRowIndex();
             if (ambiguityStart != undefined)
                 showAmbiguousRowPrompt(ambiguityStart);
             else
-                showConfirmationSpreadsheet();            
+                showConfirmationSpreadsheet();
         }
         function showAmbiguousRowPrompt(startingRowIdx) {
             var headersHTML = "";
@@ -102,6 +101,7 @@
           });
           $("#tabs").show();
           tabs.tabs("select", 0);
+          spreadsheetParsed();
           beginAutoReconciliation();
         }
 
