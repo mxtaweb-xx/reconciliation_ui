@@ -1,24 +1,28 @@
 <!doctype html>
 <html lang="en">
 <head>
-	<title>jQuery UI Draggable - Sortable Demo</title>
-	<link type="text/css" href="../../themes/default/ui.all.css" rel="stylesheet" />
-	<script type="text/javascript" src="../../jquery-1.2.6.js"></script>
+	<title>jQuery UI Draggable + Sortable</title>
+	<link type="text/css" href="../../themes/base/ui.all.css" rel="stylesheet" />
+	<script type="text/javascript" src="../../jquery-1.3.1.js"></script>
 	<script type="text/javascript" src="../../ui/ui.core.js"></script>
 	<script type="text/javascript" src="../../ui/ui.draggable.js"></script>
 	<script type="text/javascript" src="../../ui/ui.sortable.js"></script>
 	<link type="text/css" href="../demos.css" rel="stylesheet" />
 	<style type="text/css">
 	.demo ul { list-style-type: none; margin: 0; padding: 0; margin-bottom: 10px; }
-	.demo li { margin: 3px; padding: 2px; width: 150px; }
+	.demo li { margin: 5px; padding: 5px; width: 150px; }
 	</style>
 	<script type="text/javascript">
 	$(function() {
-		$("#sortable").sortable();
-		$("#draggable").draggable({
-			connectToSortable: ['#sortable'],
-			helper: 'clone'
+		$("#sortable").sortable({
+			revert: true
 		});
+		$("#draggable").draggable({
+			connectToSortable: '#sortable',
+			helper: 'clone',
+			revert: 'invalid'
+		})
+		$("ul, li").disableSelection();
 	});
 	</script>
 </head>
@@ -42,7 +46,7 @@
 <div class="demo-description">
 
 <p>
-<!-- Add description here -->
+Draggables are built to interact seamlessly with <a href="#">sortables</a>.
 </p>
 
 </div><!-- End demo-description -->

@@ -1,8 +1,8 @@
-This DataTables plugin (v1.1) for jQuery was developed out of the desire to allow highly configurable access to HTML tables with advanced access features.
+This DataTables plugin (v1.4.x) for jQuery was developed out of the desire to allow highly configurable access to HTML tables with advanced access features.
 
 For detailed installation, usage and API instructions, please refer to the DataTables web-pages:
 
-http://sprymedia.co.uk/article/DataTables
+http://sprymedia.co.uk/article/DataTables+1.4+(beta)
 
 DataTables is released with dual licensing, using the GPL v2 (license-gpl2.txt) and an BSD style license (license-bsd.txt). Please see the corresponding license file for details of these licenses. You are free to use, modify and distribute this software, but all copyright information must remain.
 
