@@ -85,17 +85,18 @@ function parseSpreadsheet(spreadsheet) {
             position++;
         }
         function isEndOfLine() {
-            return spreadsheet[position] == undefined 
-                || spreadsheet[position] == "\n" 
-                || (  spreadsheet[position] == '\r' 
-                   && spreadsheet[position+1] == "\n")
+            var c = spreadsheet.charAt(position);
+            if (c == "\r" && spreadsheet.charAt(position+1) == "\n"){
+                position++; return true;
+            }
+            return c == "" || spreadsheet.charAt(position) == "\n" ;
         }
         //If this gives me any more trouble, I'm just doing a state machine
         while(true) {
-            var c = spreadsheet[position];
+            var c = spreadsheet.charAt(position);
             if (inQuotes){
                 //quotes are quoted with two adjacent quotes
-                if (c == '"' && spreadsheet[position+1] == '"'){
+                if (c == '"' && spreadsheet.charAt(position+1) == '"'){
                     field += c;
                     position += 2;
                     continue;
@@ -120,7 +121,7 @@ function parseSpreadsheet(spreadsheet) {
             }
             
             //the field is quoted
-            if (spreadsheet[position] == '"'){
+            if (spreadsheet.charAt(position) == '"'){
                 inQuotes = true;
                 position++;
                 continue;
@@ -158,9 +159,9 @@ function parseSpreadsheet(spreadsheet) {
         if (!contains(["/type/object/name","/type/object/type","id","/type/object/id"], headers[i]) && headers[i][0] == "/")
             mqlProps.push(headers[i]);
 
-    var id_column_num = headers.indexOf(id_column);
+    var id_column_num = $.inArray(id_column, headers);
     rows = [];
-    while(spreadsheet[position] != undefined){
+    while(spreadsheet.charAt(position) != ""){
         var row = parseLine();
         //displaying "undefined" is ugly, empty string is better
         row[id_column_num] = row[id_column_num] || "";
@@ -419,12 +420,12 @@ function handleReconChoice(id) {
 }
 
 function isUnreconciled(row) {
-    var id = row[headers.indexOf(id_column)];
+    var id = row[$.inArray(id_column, headers)];
     return id == undefined || id == null || id == "indeterminate" || id == "";
 }
 
 function setId(row, id) {
-    row[headers.indexOf(id_column)] = id;
+    row[$.inArray(id_column, headers)] = id;
     updateUnreconciledCount();
 }
 
