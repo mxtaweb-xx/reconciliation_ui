@@ -2,7 +2,7 @@
         "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
-    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
     <title>Reconciliation Service</title>
     
     <link rel="stylesheet" href="lib/dataTables/media/css/demos.css" type="text/css" media="screen" charset="utf-8">
@@ -41,68 +41,85 @@
         function showAmbiguousRowPrompt(startingRowIdx) {
             var headersHTML = "";
             for (var i = 0; i < headers.length; i++)
-              headersHTML += "<th>" + headers[i] + "</th>";
+                headersHTML += "<th>" + headers[i] + "</th>";
             $("#formatDisambiguation table thead tr.headers").html(headersHTML);
             
             var rowHTML = function(row){
-              var html = "<tr>";
-              for (var i = 0; i < headers.length; i++) {
-                html += "<td>" 
-                if (typeof(row[i]) == "string")
-                  html += row[i];
-                else
-                  for (var j = 0; j < row[i].length; j++)
-                    html += row[i][j] + "<br/>";
-                html += "</td>";
-              }
-              return html + "</tr>";
+                var html = "<tr>";
+                for (var i = 0; i < headers.length; i++) {
+                    html += "<td>" 
+                    var val = row[headers[i]] || "";
+                    if (typeof val == "string")
+                        html += val;
+                    else
+                        for (var j = 0; j < val.length; j++)
+                            html += val[j] + "<br/>";
+                    html += "</td>";
+                }
+                return html + "</tr>";
             } 
             
             var separateRows = rowHTML(rows[startingRowIdx]);
-            for (var i = startingRowIdx + 1; i < rows.length && rows[i][0] == ""; i++)
-              separateRows += rowHTML(rows[i]);
+            for (var i = startingRowIdx + 1; i < rows.length && rows[i][headers[0]] == undefined; i++)
+                separateRows += rowHTML(rows[i]);
             $("#separateRows tbody").html(separateRows);
+
+            var combinedRow = clone(rows[startingRowIdx]); // produces a copy of the object
+            for (var i = startingRowIdx + 1; i < rows.length && rows[i][headers[0]] == undefined; i++){
+                for (var j = 0; j<headers.length; j++){
+                    var col = headers[j];
+                    if (rows[i][col] == undefined) continue;
+                    if (typeof(combinedRow[col]) == "string")
+                        combinedRow[col] = [combinedRow[col], rows[i][col]];
+                    else
+                        combinedRow[col].push(rows[i][col]);
+                }
+            }
+
+            $("#combineRows tbody").html(rowHTML(combinedRow));
             
-            var row = rows[startingRowIdx].slice();
-            for (var i = startingRowIdx + 1; i < rows.length && rows[i][0] == ""; i++){
-              for (var j = 0; j<headers.length; j++){
-                if (typeof(row[j]) == "string")
-                  row[j] = [row[j], rows[i][j]];
-                else
-                  row[j].push(rows[i][j]);
-              }
-            }    
-            
-            $("#combineRows tbody").html(rowHTML(row));
             $('#formatDisambiguation table tbody tr:odd').addClass('odd');
             $('#formatDisambiguation table tbody tr:even').addClass('even');
             $("#formatDisambiguation").show();
         }
         function showConfirmationSpreadsheet() {
-          spreadSheetData = {"aoColumns":[], "aaData":rows};
-          for (var i = 0; i < headers.length; i++)
-              spreadSheetData["aoColumns"].push({"sTitle":headers[i]});
+            var spreadSheetData = {"aoColumns":[], "aaData":[]};
+            for (var i = 0; i < headers.length; i++)
+                spreadSheetData.aoColumns.push({"sTitle":headers[i]});
+            for (var i = 0; i < rows.length; i++){
+                var row = [];
+                for (var j = 0; j < headers.length; j++){
+                    var val = rows[i][headers[j]];
+                    if (val == undefined)
+                        val = "";
+                    if (typeof val != "string")
+                        val = "[" + val.join(", ") + "]";
+                    row[j] = val;
+                }
+                debugger;
+                spreadSheetData.aaData.push(row);
+            }
           
-          updateUnreconciledCount();
-          spreadSheetData["bAutoWidth"] = false
-          spreadSheetData["bSort"] = false
-          $("#spreadsheetDiv").html('<table class="display" id="spreadsheetTable"></table>');
-          spreadSheetTable = $('#spreadsheetTable').dataTable(spreadSheetData)
-          $('#spreadsheetInput').hide();
-          $('#spreadsheetPreview').show();
+            updateUnreconciledCount();
+            spreadSheetData["bAutoWidth"] = false
+            spreadSheetData["bSort"] = false
+            $("#spreadsheetDiv").html('<table class="display" id="spreadsheetTable"></table>');
+            $('#spreadsheetTable').dataTable(spreadSheetData)
+            $('#spreadsheetInput').hide();
+            $('#spreadsheetPreview').show();
         }
         function continueToReconciliation() {
-          $("#spreadsheetPreview").hide();
-          var tabs = $("#tabs > ul");
-          tabs.tabs();
-          tabs.bind("tabsselect", function(event, ui) {
-              if(ui.index == 0) manualReconcile();
-              else if (ui.index == 1) renderSpreadsheet();
-          });
-          $("#tabs").show();
-          tabs.tabs("select", 0);
-          spreadsheetParsed();
-          beginAutoReconciliation();
+            $("#spreadsheetPreview").hide();
+            var tabs = $("#tabs > ul");
+            tabs.tabs();
+            tabs.bind("tabsselect", function(event, ui) {
+                if(ui.index == 0) manualReconcile();
+                else if (ui.index == 1) renderSpreadsheet();
+            });
+            $("#tabs").show();
+            tabs.tabs("select", 0);
+            spreadsheetParsed();
+            beginAutoReconciliation();
         }
 
         $(document).ready(function() {

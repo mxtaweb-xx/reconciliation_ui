@@ -38,10 +38,6 @@ var headers;
 var rows;
 var mqlProps;
 
-var currentRow = null;
-var spreadSheetData = null;
-var spreadSheetTable;
-
 function node(kind) {
     var node = $(document.createElement(arguments[0]));
     var options = arguments[arguments.length-1]
@@ -159,21 +155,24 @@ function parseSpreadsheet(spreadsheet) {
         if (!contains(["/type/object/name","/type/object/type","id","/type/object/id"], headers[i]) && headers[i][0] == "/")
             mqlProps.push(headers[i]);
 
-    var id_column_num = $.inArray(id_column, headers);
     rows = [];
     while(spreadsheet.charAt(position) != ""){
-        var row = parseLine();
-        //displaying "undefined" is ugly, empty string is better
-        row[id_column_num] = row[id_column_num] || "";
+        var rowArray = parseLine();
+        var row = {};
+        for (var i=0; i < headers.length; i++)
+            if (rowArray[i] != "")
+                row[headers[i]] = rowArray[i];
+        
         rows.push(row);
     }
 }
 
 function spreadsheetParsed() {
+    function isUnreconciled(row) {
+        return contains([undefined,null,"indeterminate",""], row[id_column]);
+    }
     totalRecords = rows.length;
-    for (var i = 0; i < rows.length; i++)
-        if (isUnreconciled(rows[i]))
-            automaticQueue.push(rows[i]);
+    automaticQueue = $.grep(rows,isUnreconciled);
 }
 
 function renderSpreadsheet() {
@@ -181,7 +180,7 @@ function renderSpreadsheet() {
         var values = [];
         for(var i = 0; i < headers.length; i++){
             var val = arr[i];
-            if (val == undefined) {
+            if (typeof val == "undefined") {
                 values.push("");
                 continue;
             }
@@ -193,13 +192,16 @@ function renderSpreadsheet() {
     function encodeRow(row) {
         var lines = [[]];
         for (var i = 0; i < headers.length; i++){
-            if (typeof(row[i]) == "string")
-                lines[0][i] = row[i];
+            var val = row[headers[i]];
+            if (typeof val == "string")
+                lines[0][i] = val;
+            else if (typeof val == "undefined")
+                lines[0][i] = "";
             else {
-                //array of values
-                for (var j = 0; j < row[i].length; j++) {
+                //val is an array
+                for (var j = 0; j < val.length; j++) {
                     if (lines[j] == undefined) lines[j] = [];
-                    lines[j][i] = row[i][j];
+                    lines[j][i] = val[j];
                 }
             }
         }
@@ -226,45 +228,36 @@ function finishedAutoReconciling() {
 }
 
 function autoReconcile() {
-    currentRow = getNextAutoReconRow();
-    if(currentRow == null) {
+    if (automaticQueue.length == 0) {
         finishedAutoReconciling();
         return;
     }
-    getCandidates(currentRow, autoReconcileResults);
+    updateUnreconciledCount();
+    getCandidates(automaticQueue[0], autoReconcileResults);
 }
 
 function autoReconcileResults(results) {
+    var currentRow = automaticQueue.shift();
     // no results, set to None:
-    if(results.length == 0) {
-        setId(currentRow, "None");
-    }
+    if(results.length == 0)
+        currentRow[id_column] = "None";
     // match found:
     else if(results[0]["match"] == true) {
-        setId(currentRow, results[0]["id"]);
+        currentRow[id_column] = results[0]["id"];
     }
     else {
         manualQueue.push([currentRow, results]);
         if (manualQueue.length == 1)
             manualReconcile();
     }
-    currentRow = null;
     autoReconcile();
-}
-
-function getNextAutoReconRow() {
-    if (automaticQueue.length == 0)
-        return null;
-    var result = automaticQueue.shift();
-    updateUnreconciledCount();
-    return result;
 }
 
 function getCandidates(row, callback) {
     var query = {}
     for(var i = 0; i < headers.length - 1; i++) {
         var prop = headers[i];
-        var value = row[i];
+        var value = row[prop];
         if (value != undefined && value != null && value != "") {
             if(query[prop] == undefined)
                 query[prop] = [];
@@ -275,28 +268,16 @@ function getCandidates(row, callback) {
 }
 
 function manualReconcile() {
-    
     var currentRecon = manualQueue[0];
     if(currentRecon != undefined) {
         $(".manualQueueEmpty").hide();
         $(".manualReconciliation").show();
-        currentManualReconRow = currentRecon[0];
-        renderReconChoices(currentRecon[1]);
+        renderReconChoices(currentRecon[1], currentRecon[0]);
     }
     else{
         $(".manualQueueEmpty").show();
         $(".manualReconciliation").hide();
     }
-        
-}
-
-function getFirstUnreconRow() {
-    if (rows != null) {
-        for(var i = 0; i < rows.length; i++)
-            if(isUnreconciled(rows[i]))
-                return rows[i];
-    }
-    return null;
 }
 
 function contains(array, value) {
@@ -310,11 +291,11 @@ function idToClass(idName) {
     return idName.replace(/\//g,"_")
 }
 
-function renderReconChoices(results) {    
+function renderReconChoices(results, row) {    
     var currentRecord = $("#recordVals").empty();
     for(var i = 0; i < headers.length; i++){
         currentRecord.append(node("label", headers[i] + ":", {"for":idToClass(headers[i])}));
-        currentRecord.append(node("div",currentManualReconRow[i]));
+        currentRecord.append(node("div",row[headers[i]]));
     }
     var tableHeader = $(".reconciliationCandidates table thead").empty();
     var columnHeaders = ["","Image","Names","Types"].concat(mqlProps).concat(["Score"]);
@@ -412,22 +393,13 @@ function fillInMQLProps(mqlResult) {
 }
 
 function handleReconChoice(id) {
-    manualQueue.shift();
     if (id != undefined)
-        setId(currentManualReconRow, id);
-    currentManualReconRow = null;
+        manualQueue[0][0][id_column] = id;
+    manualQueue.shift();
+    updateUnreconciledCount();
     manualReconcile();
 }
 
-function isUnreconciled(row) {
-    var id = row[$.inArray(id_column, headers)];
-    return id == undefined || id == null || id == "indeterminate" || id == "";
-}
-
-function setId(row, id) {
-    row[$.inArray(id_column, headers)] = id;
-    updateUnreconciledCount();
-}
 
 function updateUnreconciledCount() {
     var pctProgress = (((totalRecords - automaticQueue.length) / totalRecords) * 100);
@@ -440,16 +412,17 @@ function updateUnreconciledCount() {
 function combineRows() {
     var rowIndex = undefined;
     while(rowIndex = getAmbiguousRowIndex(rowIndex)) {
-        var row = rows[rowIndex];
+        var mergeRow = rows[rowIndex];
         var i;
-        for (i = rowIndex+1; i < rows.length && rows[i][0] == "";i++) {
+        for (i = rowIndex+1; i < rows.length && rows[i][headers[0]] == undefined;i++) {
             for (var j = 0; j<headers.length; j++) {
-                if (rows[i][j] == "")
+                var col = headers[j];
+                if (rows[i][col] == undefined)
                     continue;
-                if (typeof(row[j]) == "string")
-                    row[j] = [row[j], rows[i][j]];
+                if (typeof(mergeRow[col]) == "string")
+                    mergeRow[col] = [mergeRow[col], rows[i][col]];
                 else
-                    row[j].push(rows[i][j]);
+                    mergeRow[col].push(rows[i][col]);
             }
         }
         //remove the rows that we've combined in
@@ -458,16 +431,28 @@ function combineRows() {
 }
 
 function getAmbiguousRowIndex(from) {
+    /* 
+    Starting at `from+1`, look for the first row that has an entry in the
+    first column which is followed by a row without an entry in the first
+    column. 
+    */
     if (from == undefined)
         from = -1;
     from++;
 
     var startingRowIdx;
     for(var i = from; i < rows.length; i++) {
-        if (rows[i][0] != "")
+        if (rows[i][headers[0]] != "" && rows[i][headers[0]] != undefined)
             startingRowIdx = i;
         else if (startingRowIdx != undefined)
             return startingRowIdx;
     }
     return undefined;
+}
+
+function clone(obj) {
+    var result = {};
+    for (var i in obj)
+        result[i] = obj[i];
+    return result;
 }
