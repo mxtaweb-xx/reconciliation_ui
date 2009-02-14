@@ -272,12 +272,21 @@ function manualReconcile() {
     if(currentRecon != undefined) {
         $(".manualQueueEmpty").hide();
         $(".manualReconciliation").show();
+        prefetchImages(manualQueue[1]);
         renderReconChoices(currentRecon[1], currentRecon[0]);
     }
     else{
         $(".manualQueueEmpty").show();
         $(".manualReconciliation").hide();
     }
+}
+
+function prefetchImages(pair) {
+    if (pair === undefined) return;
+    var reconResults = pair[1];
+    var body = $("body");
+    for (var i = 0; i < reconResults.length; i++)
+        node("img",{src:imageURLForID(reconResults[i]['id']), "class":"invisible"}).appendTo(body);
 }
 
 function contains(array, value) {
@@ -287,8 +296,12 @@ function contains(array, value) {
     return false;
 }
 
+function imageURLForID(idName) {
+    return freebase_url + "/api/trans/image_thumb/"+idName+"?maxwidth=100&maxheight=100";
+}
+
 function idToClass(idName) {
-    return idName.replace(/\//g,"_")
+    return idName.replace(/\//g,"_");
 }
 
 function renderReconChoices(results, row) {    
@@ -322,7 +335,7 @@ function renderCandidate(result) {
     row.append(node("td",button));
     
     node("td",
-         node("img",{src:freebase_url + "/api/trans/image_thumb/"+result['id']+"?maxwidth=100&maxheight=100"})
+         node("img",{src:imageURLForID(result['id'])})
     ).appendTo(row);
     
     var names = node("td").appendTo(row);
@@ -451,8 +464,8 @@ function getAmbiguousRowIndex(from) {
 }
 
 function clone(obj) {
-    var result = {};
+    var copy = {};
     for (var i in obj)
-        result[i] = obj[i];
-    return result;
+        copy[i] = obj[i];
+    return copy;
 }
