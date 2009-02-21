@@ -37,6 +37,7 @@ var id_column = "id";
 var headers;
 var rows;
 var mqlProps;
+var mqlMetadataReady = false;
 
 function node(kind) {
     var node = $(document.createElement(arguments[0]));
@@ -173,6 +174,7 @@ function spreadsheetParsed() {
     }
     totalRecords = rows.length;
     automaticQueue = $.grep(rows,isUnreconciled);
+    fetchMQLPropMetadata();
 }
 
 function renderSpreadsheet() {
@@ -289,6 +291,30 @@ function prefetchImages(pair) {
         node("img",{src:imageURLForID(reconResults[i]['id']), "class":"invisible"}).appendTo(body);
 }
 
+function fetchMQLPropMetadata() {
+    function getQuery(propID) {
+        return {
+              "/type/property/expected_type" : [
+                {
+                  "extends" : [],
+                  "id" : null
+                }
+              ],
+              "/type/property/reverse_property" : [],
+              "id" : propID
+        };
+    }
+    var envelope = {};
+    for (var i = 0; i < mqlProps.length; i++)
+        envelope["q" + i] = {"query": getQuery(mqlProps[i])};
+    console.log(envelope);
+    $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {queries:JSON.stringify(envelope)}, handleMQLPropMetadata);
+}
+
+function handleMQLPropMetadata(results) {
+    console.log(results);
+}
+
 function contains(array, value) {
     for(var i = 0; i < array.length; i++)
         if (array[i] == value)
@@ -339,8 +365,9 @@ function renderCandidate(result) {
     ).appendTo(row);
     
     var names = node("td").appendTo(row);
-    for(var j = 0; j < result["name"].length; j++)
-        names.append(node("a",result["name"][j], {target:"_blank", href:url}));
+    for(var j = 0; j < result["name"].length; j++) {
+        names.append(node("a",result["name"][j], {target:"_blank", href:url})).append(node("br"));
+    }
     
     row.append(node("td",result["type"].join("<br/>")));
     
