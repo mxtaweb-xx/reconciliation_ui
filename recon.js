@@ -33,30 +33,12 @@ var manualQueue = [];
 var automaticQueue = [];
 var freebase_url = "http://www.freebase.com/"
 var reconciliation_url = "";
-var id_column = "id";
 var headers;
 var rows;
 var mqlProps;
+var mqlMetadata = {};
 var mqlMetadataReady = false;
-
-function node(kind) {
-    var node = $(document.createElement(arguments[0]));
-    var options = arguments[arguments.length-1]
-    var len = arguments.length - 1;
-    if (typeof options == "object" && options.insertAfter == undefined){
-        if (options["onclick"] != undefined) {
-            node.click(options["onclick"]);
-            delete options["onclick"];
-        }
-        node.attr(options);
-    }
-    else
-        len = arguments.length;
-    
-    for (var i = 1; i < len; i++)
-        node.append(arguments[i]);
-    return node;
-}
+var internalIDCounter = 0;
 
 function setReconciliationURL() {
     if (window.location.href.substring(0,4) == "file") {
@@ -67,6 +49,10 @@ function setReconciliationURL() {
     url_parts.pop();
     reconciliation_url = url_parts.join("/") + "/";
 }
+
+/*
+** Parsing and munging the input
+*/
 
 function parseSpreadsheet(spreadsheet) {
     var position = 0;
@@ -146,83 +132,152 @@ function parseSpreadsheet(spreadsheet) {
     headers = parseLine();
     
     //get, or make the id column
-    if (!contains(headers, "id") && !contains(headers, "/type/object/id"))
-        headers.push(id_column);
-    else if (contains(headers, "/type/object/id"))
-        id_column = "/type/object/id"
+    if (!contains(headers, "id"))
+        headers.push("id");
     
     mqlProps = [];
     for(var i =0; i < headers.length; i++)
         if (!contains(["/type/object/name","/type/object/type","id","/type/object/id"], headers[i]) && headers[i][0] == "/")
             mqlProps.push(headers[i]);
-
+    
     rows = [];
-    var idx = 0;
     while(spreadsheet.charAt(position) != ""){
         var rowArray = parseLine();
         var row = {};
         for (var i=0; i < headers.length; i++)
             if (rowArray[i] != "")
                 row[headers[i]] = rowArray[i];
-        row.internalId = idx++;
+        row.internalId = internalIDCounter++;
         rows.push(row);
     }
 }
 
+function combineRows() {
+    var rowIndex = undefined;
+    while(rowIndex = getAmbiguousRowIndex(rowIndex)) {
+        var mergeRow = rows[rowIndex];
+        var i;
+        for (i = rowIndex+1; i < rows.length && rows[i][headers[0]] == undefined;i++) {
+            for (var j = 0; j<headers.length; j++) {
+                var col = headers[j];
+                if (rows[i][col] == undefined)
+                    continue;
+                if (typeof(mergeRow[col]) == "string")
+                    mergeRow[col] = [mergeRow[col], rows[i][col]];
+                else
+                    mergeRow[col].push(rows[i][col]);
+            }
+        }
+        //remove the rows that we've combined in
+        rows.splice(rowIndex+1, (i - rowIndex) - 1);
+    }
+}
+
+function getAmbiguousRowIndex(from) {
+    /* 
+    Starting at `from+1`, look for the first row that has an entry in the
+    first column which is followed by a row without an entry in the first
+    column. 
+    */
+    if (from == undefined)
+        from = -1;
+    from++;
+
+    var startingRowIdx;
+    for(var i = from; i < rows.length; i++) {
+        if (rows[i][headers[0]] != "" && rows[i][headers[0]] != undefined)
+            startingRowIdx = i;
+        else if (startingRowIdx != undefined)
+            return startingRowIdx;
+    }
+    return undefined;
+}
+
 function spreadsheetParsed() {
     function isUnreconciled(row) {
-        return contains([undefined,null,"indeterminate",""], row[id_column]);
+        return contains([undefined,null,"indeterminate",""], row["id"]);
     }
     totalRecords = rows.length;
     automaticQueue = $.grep(rows,isUnreconciled);
-    fetchMQLPropMetadata();
     var tableHeader = $(".reconciliationCandidates table thead");
     var columnHeaders = ["","Image","Names","Types"].concat(mqlProps).concat(["Score"]);
     for (var i = 0; i < columnHeaders.length; i++)
         tableHeader.append(node("th",columnHeaders[i]));
+    fetchMQLPropMetadata();
 }
 
-function renderSpreadsheet() {
-    function encodeLine(arr) {
-        var values = [];
-        for(var i = 0; i < headers.length; i++){
-            var val = arr[i];
-            if (typeof val == "undefined") {
-                values.push("");
-                continue;
-            }
-            val = val.replace(/"/g, '""');
-            values.push('"' + val + '"');
-        }
-        return values.join("\t");
+function fetchMQLPropMetadata() {
+    function getQuery(propID) {
+        return {
+              "expected_type" : {
+                  "extends" : [],
+                  "id" : null
+              },
+              "reverse_property" : null,
+              "type" : "/type/property",
+              "id" : propID
+        };
     }
-    function encodeRow(row) {
-        var lines = [[]];
-        for (var i = 0; i < headers.length; i++){
-            var val = row[headers[i]];
-            if (typeof val == "string")
-                lines[0][i] = val;
-            else if (typeof val == "undefined")
-                lines[0][i] = "";
-            else {
-                //val is an array
-                for (var j = 0; j < val.length; j++) {
-                    if (lines[j] == undefined) lines[j] = [];
-                    lines[j][i] = val[j];
+    var envelope = {};
+    for (var i = 0; i < mqlProps.length; i++)
+        envelope["q" + i] = {"query": getQuery(mqlProps[i])};
+//     console.log(envelope)
+    $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {queries:JSON.stringify(envelope)}, handleMQLPropMetadata);
+}
+
+function handleMQLPropMetadata(results) {
+    assert(results.code == "/api/status/ok", results);
+    console.log(results);
+    var i = 0;
+    var result = results["q" + i++];
+    
+    while (result != undefined) {
+        assert(result.code == "/api/status/ok", result)
+        mqlMetadata[result.result['id']] = result.result;
+        if (mqlMetadata[result.result.expected_type] == undefined)
+            mqlMetadata[result.result.expected_type] = {reverse_property: result.result.id};
+        result = results["q" + i++];
+    }
+    objectifyRows();
+}
+
+function objectifyRows() {
+    function isValueType(type) {
+        return contains(type['extends'], "/type/value");
+    }
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        for (var prop in row) {
+            function objectifyRowProperty(value) {
+                var result = {'/type/object/name':row[prop],
+                              '/type/object/type':meta.expected_type['id'],
+                              '/rec_ui/headers': ['/type/object/name','/type/object/type'],
+                              '/rec_ui/mql_props': [],
+                              "internalId":internalIDCounter++};
+                if (meta.reverse_property != null){
+                    result[meta.reverse_property] = row;
+                    result['/rec_ui/reverse'] = meta.reverse_property;
+                    result['/rec_ui/headers'].push(meta.reverse_property);
+                    result['/rec_ui/mql_props'].push(meta.reverse_property);
                 }
+                return result;
             }
+            
+            var meta = mqlMetadata[prop];
+            if (meta == undefined || isValueType(meta.expected_type))
+                continue;
+            if ($.isArray(row[prop]))
+                row[prop] = $.map(row[prop], objectifyRowProperty)
+            else
+                row[prop] = objectifyRowProperty(row[prop]);
         }
-        return $.map(lines,encodeLine);
     }
-    var lines = [];
-    lines.push(encodeLine(headers));
-    for (var i = 0; i < rows.length; i++)
-        lines = lines.concat(encodeRow(rows[i]));
-
-    $("#outputSpreadSheet")[0].value = lines.join("\n");
 }
 
 
+/*
+**  Automatic reconciliation
+*/
 function beginAutoReconciliation() {
     $(".nowReconciling").show();
     $(".notReconciling").hide();
@@ -247,36 +302,45 @@ function autoReconcileResults(row) {
     automaticQueue.shift();
     // no results, set to None:
     if(row.reconResults.length == 0)
-        row[id_column] = "None";
+        row["id"] = "None";
     // match found:
     else if(row.reconResults[0]["match"] == true) {
-        row[id_column] = row.reconResults[0]["id"];
+        row["id"] = row.reconResults[0]["id"];
     }
     else {
         manualQueue.push(row);
         if (manualQueue.length == 1)
             manualReconcile();
     }
+    addColumnRecCases(row);
     autoReconcile();
 }
 
 function getCandidates(row, callback) {
     var query = {}
+    var headers = getHeaders(row);
     for (var i = 0; i < headers.length - 1; i++) {
         var prop = headers[i];
         var value = row[prop];
+        
         if (value != undefined && value != null && value != "") {
             if(query[prop] == undefined)
                 query[prop] = [];
-            query[prop] = query[prop].concat($.makeArray(value));
+            query[prop] = query[prop].concat($.map($.makeArray(value), function(a) {return a['/type/object/name'] || a}));
         }
     }
+    if (row['/rec_ui/headers'] != undefined)
+        console.log(query)
     function handler(results) {
         row.reconResults = results; 
         callback(row);
     }
     $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:4}, handler);
 }
+
+/*
+** Manual Reconciliation
+*/
 
 function manualReconcile() {
     if(manualQueue[0] != undefined) {
@@ -288,49 +352,12 @@ function manualReconcile() {
     else{
         $(".manualQueueEmpty").show();
         $(".manualReconciliation").hide();
-        $(".manualReconChoices:visible").remove();
     }
-}
-
-function fetchMQLPropMetadata() {
-    function getQuery(propID) {
-        return {
-              "/type/property/expected_type" : [
-                {
-                  "extends" : [],
-                  "id" : null
-                }
-              ],
-              "/type/property/reverse_property" : [],
-              "id" : propID
-        };
-    }
-    var envelope = {};
-    for (var i = 0; i < mqlProps.length; i++)
-        envelope["q" + i] = {"query": getQuery(mqlProps[i])};
-    console.log(envelope);
-    $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {queries:JSON.stringify(envelope)}, handleMQLPropMetadata);
-}
-
-function handleMQLPropMetadata(results) {
-    console.log(results);
-}
-
-function contains(array, value) {
-    for(var i = 0; i < array.length; i++)
-        if (array[i] == value)
-            return true;
-    return false;
-}
-
-function idToClass(idName) {
-    return idName.replace(/\//g,"_");
 }
 
 function displayReconChoices(row) {
     if (! $("#manualReconcile" + row.internalId)[0])
         renderReconChoices(row);
-    $(".manualReconChoices:visible").remove();
     $("#manualReconcile" + row.internalId).show();
 }
 
@@ -338,10 +365,12 @@ function renderReconChoices(row) {
     if (row == undefined) return;
     var template = $("#manualReconcileTemplate").clone();
     template[0].id = "manualReconcile" + row.internalId;
+    var headers = getHeaders(row);
+    
     var currentRecord = $(".recordVals",template);
     for(var i = 0; i < headers.length; i++) {
         currentRecord.append(node("label", headers[i] + ":", {"for":idToClass(headers[i])}));
-        currentRecord.append(node("div",row[headers[i]]));
+        currentRecord.append(node("div",textValue(row[headers[i]])));
     }
     
     var tableBody = $(".reconciliationCandidates table tbody", template);
@@ -391,6 +420,7 @@ function renderCandidate(result) {
 }
 
 function fetchMqlProps(row) {
+    var mqlProps = getMQLProps(row);
     for (var i = 0; i < row.reconResults.length; i++) {
         var result = row.reconResults[i];
         var query = {"id":result["id"],
@@ -414,29 +444,30 @@ function fetchMqlProps(row) {
                     };
         var envelope = {query:query};
         function handler(results) {
-            
+            fillInMQLProps(row, results);
         }
-        $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {query:JSON.stringify(envelope)}, fillInMQLProps);
+        $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {query:JSON.stringify(envelope)}, handler);
     }
 }
 
-function fillInMQLProps(mqlResult) {
+function fillInMQLProps(row, mqlResult) {
+    var context = $("#manualReconcile" + row.internalId);
     if (mqlResult["code"] != "/api/status/ok" || mqlResult["result"] == null) {
         //don't show annoying loading symbols indefinitely if there's an error
-        $(".replaceme").html("");
+        $(".replaceme",context).empty();
+        error(mqlResult);
         return;
     }
 
     var result = mqlResult["result"];
-    var selector = "tr." + idToClass(result["id"]);
-    var row = $(selector);
-    $(selector + " .replaceme").html("");
+    var row = $("tr." + idToClass(result["id"]),context);
+    $(".replaceme", row).empty();
     
     var props = result["/type/reflect/any_master"].concat(
                 result["/type/reflect/any_value"]);
     for (var i = 0; i < props.length; i++) {
         var prop = props[i];
-        var cell = row.children("td." + idToClass(prop["link"]));
+        var cell = $("td." + idToClass(prop["link"]), row);
         if (prop["value"] != undefined)
             cell.html(cell.html() + prop["value"] + " <br/>");
         else
@@ -445,14 +476,62 @@ function fillInMQLProps(mqlResult) {
 }
 
 function handleReconChoice(id) {
+    var row = manualQueue.shift();
     if (id != undefined)
-        manualQueue[0][id_column] = id;
-    manualQueue.shift();
+        row["id"] = id;
+    addColumnRecCases(row);
+    $("#manualReconcile" + row.internalId).remove();
     updateUnreconciledCount();
     manualReconcile();
 }
 
+/*
+**  Rendering the spreadsheet back to the user
+*/
 
+function renderSpreadsheet() {
+    function encodeLine(arr) {
+        var values = [];
+        for(var i = 0; i < headers.length; i++){
+            var val = arr[i];
+            if (typeof val == "undefined") {
+                values.push("");
+                continue;
+            }
+            val = val.replace(/"/g, '""');
+            values.push('"' + val + '"');
+        }
+        return values.join("\t");
+    }
+    function encodeRow(row) {
+        var lines = [[]];
+        for (var i = 0; i < headers.length; i++){
+            var val = row[headers[i]];
+            if (typeof val == "string")
+                lines[0][i] = val;
+            else if (typeof val == "undefined")
+                lines[0][i] = "";
+            else {
+                //val is an array
+                for (var j = 0; j < val.length; j++) {
+                    if (lines[j] == undefined) lines[j] = [];
+                    lines[j][i] = val[j];
+                }
+            }
+        }
+        return $.map(lines,encodeLine);
+    }
+    var lines = [];
+    lines.push(encodeLine(headers));
+    for (var i = 0; i < rows.length; i++)
+        lines = lines.concat(encodeRow(rows[i]));
+
+    $("#outputSpreadSheet")[0].value = lines.join("\n");
+}
+
+/*
+** Progress indication
+*/ 
 function updateUnreconciledCount() {
     var pctProgress = (((totalRecords - automaticQueue.length) / totalRecords) * 100);
     $("#progressbar").progressbar("value", pctProgress);
@@ -460,51 +539,94 @@ function updateUnreconciledCount() {
     $(".manual_count").html("("+manualQueue.length+")");
 }
 
+/*
+**  Misc utility functions
+*/
 
-function combineRows() {
-    var rowIndex = undefined;
-    while(rowIndex = getAmbiguousRowIndex(rowIndex)) {
-        var mergeRow = rows[rowIndex];
-        var i;
-        for (i = rowIndex+1; i < rows.length && rows[i][headers[0]] == undefined;i++) {
-            for (var j = 0; j<headers.length; j++) {
-                var col = headers[j];
-                if (rows[i][col] == undefined)
-                    continue;
-                if (typeof(mergeRow[col]) == "string")
-                    mergeRow[col] = [mergeRow[col], rows[i][col]];
-                else
-                    mergeRow[col].push(rows[i][col]);
-            }
-        }
-        //remove the rows that we've combined in
-        rows.splice(rowIndex+1, (i - rowIndex) - 1);
-    }
-}
-
-function getAmbiguousRowIndex(from) {
-    /* 
-    Starting at `from+1`, look for the first row that has an entry in the
-    first column which is followed by a row without an entry in the first
-    column. 
-    */
-    if (from == undefined)
-        from = -1;
-    from++;
-
-    var startingRowIdx;
-    for(var i = from; i < rows.length; i++) {
-        if (rows[i][headers[0]] != "" && rows[i][headers[0]] != undefined)
-            startingRowIdx = i;
-        else if (startingRowIdx != undefined)
-            return startingRowIdx;
-    }
-    return undefined;
-}
-
+//perform a shallow copy of a JS object
 function clone(obj) {
     var copy = {};
     for (var i in obj)
         copy[i] = obj[i];
     return copy;
+}
+
+//constructs a DOM node
+function node(kind) {
+    var node = $(document.createElement(arguments[0]));
+    var options = arguments[arguments.length-1]
+    var len = arguments.length - 1;
+    if (typeof options == "object" && options.insertAfter == undefined){
+        if (options["onclick"] != undefined) {
+            node.click(options["onclick"]);
+            delete options["onclick"];
+        }
+        node.attr(options);
+    }
+    else
+        len = arguments.length;
+    
+    for (var i = 1; i < len; i++)
+        node.append(arguments[i]);
+    return node;
+}
+
+//Uniquely maps MQL ids to valid CSS class names
+function idToClass(idName) {
+    return idName.replace(/\//g,"_");
+}
+
+//Is value in array?
+function contains(array, value) {
+    for(var i = 0; i < array.length; i++)
+        if (array[i] == value)
+            return true;
+    return false;
+}
+
+function assert(bool, message) {
+    if (console.assert != undefined)
+        console.assert(bool, message);
+    else
+        if (!bool) error(message);
+}
+function error(message) {
+    if (console.error != undefined)
+        console.error(message);
+    else
+        node("div",message).appendTo("#errors");
+}
+
+function textValue(value) {
+    if ($.isArray(value))
+        return "[" + $.map(value, textValue).join(", ") + "]";
+    else if (value == undefined || value == null)
+        return "";
+    else
+        return value['/type/object/name'] || value;
+}
+
+function getHeaders(row) {
+    return row['/rec_ui/headers'] || headers;
+}
+function getMQLProps(row) {
+    return row['/rec_ui/mql_props'] || mqlProps;
+}
+
+function addColumnRecCases(row) {
+    //if this isn't a property off of a row, but a row itself
+    if (row["/rec_ui/headers"] == undefined) {
+        var autoQueueLength = automaticQueue.length;
+        for (var i = 0; i < mqlProps.length; i++) {
+            var values = $.makeArray(row[mqlProps[i]]);
+            for (var j = 0; j < values.length; j++) {
+                if (values[j]['/type/object/name'] != undefined){
+                    automaticQueue.push(values[j]);
+                    totalRecords++;
+                }
+            }
+        }
+        if (autoQueueLength == 0)
+            beginAutoReconciliation();
+    }
 }
