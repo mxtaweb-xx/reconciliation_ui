@@ -117,8 +117,7 @@
             });
             $("#tabs").show();
             tabs.tabs("select", 0);
-            spreadsheetParsed();
-            beginAutoReconciliation();
+            spreadsheetParsed(beginAutoReconciliation);
         }
 
         $(document).ready(function() {

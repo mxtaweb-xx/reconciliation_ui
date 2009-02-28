@@ -193,20 +193,16 @@ function getAmbiguousRowIndex(from) {
     return undefined;
 }
 
-function spreadsheetParsed() {
+function spreadsheetParsed(callback) {
     function isUnreconciled(row) {
         return contains([undefined,null,"indeterminate",""], row["id"]);
     }
     totalRecords = rows.length;
     automaticQueue = $.grep(rows,isUnreconciled);
-    var tableHeader = $(".reconciliationCandidates table thead");
-    var columnHeaders = ["","Image","Names","Types"].concat(mqlProps).concat(["Score"]);
-    for (var i = 0; i < columnHeaders.length; i++)
-        tableHeader.append(node("th",columnHeaders[i]));
-    fetchMQLPropMetadata();
+    fetchMQLPropMetadata(callback);
 }
 
-function fetchMQLPropMetadata() {
+function fetchMQLPropMetadata(callback) {
     function getQuery(propID) {
         return {
               "expected_type" : {
@@ -221,8 +217,11 @@ function fetchMQLPropMetadata() {
     var envelope = {};
     for (var i = 0; i < mqlProps.length; i++)
         envelope["q" + i] = {"query": getQuery(mqlProps[i])};
-//     console.log(envelope)
-    $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {queries:JSON.stringify(envelope)}, handleMQLPropMetadata);
+    function handler(results) {
+        handleMQLPropMetadata(results);
+        callback();
+    }
+    $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {queries:JSON.stringify(envelope)}, handler);
 }
 
 function handleMQLPropMetadata(results) {
@@ -319,18 +318,16 @@ function autoReconcileResults(row) {
 function getCandidates(row, callback) {
     var query = {}
     var headers = getHeaders(row);
-    for (var i = 0; i < headers.length - 1; i++) {
+    for (var i = 0; i < headers.length; i++) {
         var prop = headers[i];
         var value = row[prop];
         
-        if (value != undefined && value != null && value != "") {
+        if (value != undefined && value != null && value != "" && prop != "id") {
             if(query[prop] == undefined)
                 query[prop] = [];
             query[prop] = query[prop].concat($.map($.makeArray(value), function(a) {return a['/type/object/name'] || a}));
         }
     }
-    if (row['/rec_ui/headers'] != undefined)
-        console.log(query)
     function handler(results) {
         row.reconResults = results; 
         callback(row);
@@ -366,6 +363,7 @@ function renderReconChoices(row) {
     var template = $("#manualReconcileTemplate").clone();
     template[0].id = "manualReconcile" + row.internalId;
     var headers = getHeaders(row);
+    var mqlProps = getMQLProps(row);
     
     var currentRecord = $(".recordVals",template);
     for(var i = 0; i < headers.length; i++) {
@@ -373,9 +371,14 @@ function renderReconChoices(row) {
         currentRecord.append(node("div",textValue(row[headers[i]])));
     }
     
+    var tableHeader = $(".reconciliationCandidates table thead", template);
+    var columnHeaders = ["","Image","Names","Types"].concat(mqlProps).concat(["Score"]);
+    for (var i = 0; i < columnHeaders.length; i++)
+        tableHeader.append(node("th",columnHeaders[i]));
+    
     var tableBody = $(".reconciliationCandidates table tbody", template);
     for (var i = 0; i < row.reconResults.length; i++)
-        tableBody.append(renderCandidate(row.reconResults[i]));
+        tableBody.append(renderCandidate(row.reconResults[i], mqlProps));
 
     $('.reconciliationCandidates table tbody tr:odd', template).addClass('odd');
     $('.reconciliationCandidates table tbody tr:even', template).addClass('even');
@@ -390,7 +393,7 @@ function renderReconChoices(row) {
     fetchMqlProps(row);
 }
 
-function renderCandidate(result) {
+function renderCandidate(result, mqlProps) {
     var url = freebase_url + "/view/" + result['id'];
     var row = node("tr", {"class":idToClass(result["id"])});
     
@@ -420,6 +423,7 @@ function renderCandidate(result) {
 }
 
 function fetchMqlProps(row) {
+    debugger;
     var mqlProps = getMQLProps(row);
     for (var i = 0; i < row.reconResults.length; i++) {
         var result = row.reconResults[i];
@@ -440,7 +444,16 @@ function fetchMqlProps(row) {
                          "value" : null,
                          "optional" : true
                        }
-                     ]
+                     ],
+                     "/type/reflect/any_reverse" : [
+                        {
+                          "link" : {"master_property":{"reverse_property|=":mqlProps,
+                                    "reverse_property":null}},
+                          "id" : null,
+                          "name" : null,
+                          "optional" : true
+                        }
+                      ],
                     };
         var envelope = {query:query};
         function handler(results) {
@@ -459,19 +472,23 @@ function fillInMQLProps(row, mqlResult) {
         return;
     }
 
-    var result = mqlResult["result"];
-    var row = $("tr." + idToClass(result["id"]),context);
+    var result = mqlResult.result;
+    var row = $("tr." + idToClass(result.id),context);
     $(".replaceme", row).empty();
     
     var props = result["/type/reflect/any_master"].concat(
-                result["/type/reflect/any_value"]);
+                result["/type/reflect/any_value"]).concat(
+                result["/type/reflect/any_reverse"]);
     for (var i = 0; i < props.length; i++) {
         var prop = props[i];
-        var cell = $("td." + idToClass(prop["link"]), row);
-        if (prop["value"] != undefined)
-            cell.html(cell.html() + prop["value"] + " <br/>");
+        var link = prop.link;
+        if (link.master_property != undefined)
+            link = link.master_property.reverse_property;
+        var cell = $("td." + idToClass(link), row);
+        if (prop.value != undefined)
+            cell.html(cell.html() + prop.value + " <br/>");
         else
-            cell.html(cell.html() + "<a target='_blank' href='"+freebase_url+"/view"+prop["id"]+"'>" + prop["name"] + "</a><br/>")
+            cell.html(cell.html() + "<a target='_blank' href='"+freebase_url+"/view"+prop.id+"'>" + prop.name + "</a><br/>")
     }
 }
 
