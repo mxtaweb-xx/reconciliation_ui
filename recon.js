@@ -226,7 +226,6 @@ function fetchMQLPropMetadata(callback) {
 
 function handleMQLPropMetadata(results) {
     assert(results.code == "/api/status/ok", results);
-    console.log(results);
     var i = 0;
     var result = results["q" + i++];
     
@@ -297,11 +296,41 @@ function autoReconcile() {
     getCandidates(automaticQueue[0], autoReconcileResults);
 }
 
+function getCandidates(row, callback) {
+    var query = {}
+    var headers = getHeaders(row);
+    for (var i = 0; i < headers.length; i++) {
+        var prop = headers[i];
+        var value = row[prop];
+        
+        function constructQueryPart(value) {
+            if (value.id != undefined && value.id != "" && value.id != "None")
+                return {"id":value.id, "name":value["/type/object/name"]}
+            return value["/type/object/name"] || value;
+        }
+        if (value != undefined && value != null && value != "" && prop != "id") {
+            if(query[prop] == undefined)
+                query[prop] = [];
+            query[prop] = query[prop].concat($.map($.makeArray(value), constructQueryPart));
+        }
+    }
+    function handler(results) {
+        row.reconResults = results; 
+        callback(row);
+    }
+    log(query);
+    $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:4}, handler);
+}
+
 function autoReconcileResults(row) {
     automaticQueue.shift();
     // no results, set to None:
-    if(row.reconResults.length == 0)
+    if(row.reconResults.length == 0) {
         row["id"] = "None";
+        warn("No results:");
+        warn(row);
+    }
+        
     // match found:
     else if(row.reconResults[0]["match"] == true) {
         row["id"] = row.reconResults[0]["id"];
@@ -313,26 +342,6 @@ function autoReconcileResults(row) {
     }
     addColumnRecCases(row);
     autoReconcile();
-}
-
-function getCandidates(row, callback) {
-    var query = {}
-    var headers = getHeaders(row);
-    for (var i = 0; i < headers.length; i++) {
-        var prop = headers[i];
-        var value = row[prop];
-        
-        if (value != undefined && value != null && value != "" && prop != "id") {
-            if(query[prop] == undefined)
-                query[prop] = [];
-            query[prop] = query[prop].concat($.map($.makeArray(value), function(a) {return a['/type/object/name'] || a}));
-        }
-    }
-    function handler(results) {
-        row.reconResults = results; 
-        callback(row);
-    }
-    $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:4}, handler);
 }
 
 /*
@@ -610,7 +619,19 @@ function error(message) {
     if (console.error != undefined)
         console.error(message);
     else
-        node("div",message).appendTo("#errors");
+        node("div",JSON.stringify(message)).appendTo("#errors");
+}
+function warn(message) {
+    if (console.warn != undefined)
+        console.warn(message);
+    else
+        node("div",JSON.stringify(message)).appendTo("#warnings");
+}
+function log(message) {
+    if (console.log != undefined)
+        console.log(message);
+    else
+        node("div",JSON.stringify(message)).appendTo("#log");
 }
 
 function textValue(value) {
