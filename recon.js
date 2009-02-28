@@ -368,7 +368,7 @@ function renderReconChoices(row) {
     var currentRecord = $(".recordVals",template);
     for(var i = 0; i < headers.length; i++) {
         currentRecord.append(node("label", headers[i] + ":", {"for":idToClass(headers[i])}));
-        currentRecord.append(node("div",textValue(row[headers[i]])));
+        currentRecord.append(node("div",displayValue(row[headers[i]])));
     }
     
     var tableHeader = $(".reconciliationCandidates table thead", template);
@@ -423,7 +423,6 @@ function renderCandidate(result, mqlProps) {
 }
 
 function fetchMqlProps(row) {
-    debugger;
     var mqlProps = getMQLProps(row);
     for (var i = 0; i < row.reconResults.length; i++) {
         var result = row.reconResults[i];
@@ -488,7 +487,7 @@ function fillInMQLProps(row, mqlResult) {
         if (prop.value != undefined)
             cell.html(cell.html() + prop.value + " <br/>");
         else
-            cell.html(cell.html() + "<a target='_blank' href='"+freebase_url+"/view"+prop.id+"'>" + prop.name + "</a><br/>")
+            cell.html(cell.html() + freebaseLink(prop.id, prop.name) + "<br/>")
     }
 }
 
@@ -617,10 +616,19 @@ function error(message) {
 function textValue(value) {
     if ($.isArray(value))
         return "[" + $.map(value, textValue).join(", ") + "]";
-    else if (value == undefined || value == null)
+    if (value == undefined || value == null)
         return "";
-    else
-        return value['/type/object/name'] || value;
+    return value['/type/object/name'] || value;
+}
+
+function displayValue(value) {
+    if ($.isArray(value))
+        return $.map(value, displayValue).join("<br/>");
+    if (value == undefined || value == null)
+        return "[null]";
+    if (value.id != undefined && value.id != "None")
+        return freebaseLink(value.id, textValue(value["/type/object/name"]));
+    return textValue(value);
 }
 
 function getHeaders(row) {
@@ -628,6 +636,10 @@ function getHeaders(row) {
 }
 function getMQLProps(row) {
     return row['/rec_ui/mql_props'] || mqlProps;
+}
+
+function freebaseLink(id, text) {
+    return "<a target='_blank' href='"+freebase_url+"/view"+id+"'>" + text + "</a>"
 }
 
 function addColumnRecCases(row) {
