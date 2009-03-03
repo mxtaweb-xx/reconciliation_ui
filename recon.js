@@ -37,8 +37,6 @@ var headers;
 var rows;
 var mqlProps;
 var mqlMetadata = {};
-var mqlMetadataReady = false;
-var internalIDCounter = 0;
 
 function setReconciliationURL() {
     if (window.location.href.substring(0,4) == "file") {
@@ -51,6 +49,7 @@ function setReconciliationURL() {
 }
 
 var entities = {};
+var internalIDCounter = 0;
 function newEntity(initialVals) {
     var result = {"/rec_ui/id":internalIDCounter++}
     entities[result["/rec_ui/id"]] = result;
