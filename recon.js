@@ -48,13 +48,13 @@ function setReconciliationURL() {
     reconciliation_url = url_parts.join("/") + "/";
 }
 
-var entities = {};
+var entities = [];
 var internalIDCounter = 0;
 function newEntity(initialVals) {
     var result = {"/rec_ui/id":internalIDCounter++}
     entities[result["/rec_ui/id"]] = result;
-    for (var key : initialVals)
-        entities[key] = initialVals[key];
+    for (var key in initialVals)
+        result[key] = initialVals[key];
     return result;
 }
 
@@ -148,8 +148,8 @@ function parseSpreadsheet(spreadsheet) {
             mqlProps.push(headers[i]);
     
     rows = [];
-    var rowHeaders = headers.splice();
-    var rowMqlProps = mqlProps.splice();
+    var rowHeaders = headers.slice();
+    var rowMqlProps = mqlProps.slice();
     while(spreadsheet.charAt(position) != ""){
         var rowArray = parseLine();
         var entity = newEntity({"/rec_ui/headers": rowHeaders,
@@ -287,6 +287,7 @@ function objectifyRows() {
 function beginAutoReconciliation() {
     $(".nowReconciling").show();
     $(".notReconciling").hide();
+    $("#gettingInput").remove();
     autoReconcile();
 }
 
@@ -345,8 +346,9 @@ function autoReconcileResults(entity) {
         addColumnRecCases(entity);
     }
     else {
-        manualQueue.push(entity);
-        if (manualQueue.length == 1)
+        var wasEmpty = isObjectEmpty(manualQueue);
+        manualQueue[entity["/rec_ui/id"]] = entity;
+        if (wasEmpty)
             manualReconcile();
     }
     autoReconcile();
@@ -357,11 +359,10 @@ function autoReconcileResults(entity) {
 */
 
 function manualReconcile() {
-    if(manualQueue[0] != undefined) {
-        $(".manualQueueEmpty").hide();
-        $(".manualReconciliation").show();
-        displayReconChoices(manualQueue[0]);
-        renderReconChoices(manualQueue[1]); //render-ahead the next one
+    var val = getFirstValue(manualQueue);
+    if(val != undefined) {
+        $.historyLoad(val["/rec_ui/id"])
+        renderReconChoices(getSecondValue(manualQueue)); //render-ahead the next one
     }
     else{
         $(".manualQueueEmpty").show();
@@ -369,10 +370,17 @@ function manualReconcile() {
     }
 }
 
-function displayReconChoices(entity) {
-    if (! $("#manualReconcile" + entity["/rec_ui/id"])[0])
+function displayReconChoices(entityID) {
+    var entity = entities[entityID];
+    if (entity === undefined) return;
+    $(".manualQueueEmpty").hide();
+    $(".manualReconciliation").show();
+    //remove rather than hide to prevent memory leaks
+    $(".manualReconChoices:visible").remove();
+    
+    if (! $("#manualReconcile" + entityID)[0])
         renderReconChoices(entity);
-    $("#manualReconcile" + entity["/rec_ui/id"]).show();
+    $("#manualReconcile" + entityID).show();
 }
 
 function renderReconChoices(entity) {
@@ -402,9 +410,9 @@ function renderReconChoices(entity) {
     $(".find_topic", template)
         .freebaseSuggest()
         .bind("fb-select", function(e, data) { 
-          handleReconChoice(data.id);
+          handleReconChoice(entity["/rec_ui/id"], data.id);
         });
-    
+    $(".manualSelection", template).click(function(val) {handleReconChoice(entity, this.name)});
     template.insertAfter("#manualReconcileTemplate")
 
     fetchMqlProps(entity);
@@ -412,11 +420,11 @@ function renderReconChoices(entity) {
 
 function renderCandidate(result, mqlProps) {
     var url = freebase_url + "/view/" + result['id'];
-    var entity = node("tr", {"class":idToClass(result["id"])});
+    var tableRow = node("tr", {"class":idToClass(result["id"])});
     
     var button = node("button", "Select", 
        {"class":'manualSelection', 
-        "onclick":function() {handleReconChoice(result["id"])}})
+        "name":result.id})
     tableRow.append(node("td",button));
     
     node("td",
@@ -508,10 +516,10 @@ function fillInMQLProps(entity, mqlResult) {
     }
 }
 
-function handleReconChoice(id) {
-    var entity = manualQueue.shift();
-    if (id != undefined)
-        entity["id"] = id;
+function handleReconChoice(entity,freebaseId) {
+    delete manualQueue[entity["/rec_ui/id"]];
+    if (freebaseId != undefined)
+        entity.id = freebaseId;
     addColumnRecCases(entity);
     $("#manualReconcile" + entity["/rec_ui/id"]).remove();
     updateUnreconciledCount();
@@ -569,7 +577,7 @@ function updateUnreconciledCount() {
     var pctProgress = (((totalRecords - automaticQueue.length) / totalRecords) * 100);
     $("#progressbar").progressbar("value", pctProgress);
     $("#progressbar label").html(pctProgress.toFixed(1) + "%")
-    $(".manual_count").html("("+manualQueue.length+")");
+    $(".manual_count").html("("+numProperties(manualQueue)+")");
 }
 
 /*
@@ -628,18 +636,21 @@ function error(message) {
         console.error(message);
     else
         node("div",JSON.stringify(message)).appendTo("#errors");
+    return message
 }
 function warn(message) {
     if (console.warn != undefined)
         console.warn(message);
     else
         node("div",JSON.stringify(message)).appendTo("#warnings");
+    return message
 }
 function log(message) {
     if (console.log != undefined)
         console.log(message);
     else
         node("div",JSON.stringify(message)).appendTo("#log");
+    return message
 }
 
 function textValue(value) {
@@ -679,4 +690,36 @@ function addColumnRecCases(row) {
         if (autoQueueLength == 0)
             beginAutoReconciliation();
     }
+}
+
+
+//I can't believe I can't find a better way of doing these:
+function getFirstValue(obj) {
+    for (var key in obj)
+        return obj[key];
+    return undefined;
+}
+
+function getSecondValue(obj) {
+    var i = 1;
+    for (var key in obj){
+        if (i > 1)
+            return obj[key];
+        i++;
+    }
+    return undefined
+    
+}
+
+function isObjectEmpty(obj) {
+    for (var key in obj)
+        return false;
+    return true;
+}
+
+function numProperties(obj) {
+    var i = 0;
+    for (var key in obj)
+        i++;
+    return i;
 }

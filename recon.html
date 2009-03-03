@@ -18,6 +18,8 @@
     <script type="text/javascript" language="javascript" src="lib/jquery.ui/ui/ui.tabs.js"></script>
     <script type="text/javascript" language="javascript" src="lib/jquery.ui/ui/ui.progressbar.js"></script>
     <script type="text/javascript" language="javascript" src="lib/dataTables/media/js/jquery.dataTables.js"></script>
+    <script type="text/javascript" language="javascript" src="lib/jquery.history.js"></script>
+    
 
     <script type="text/javascript" language="javascript" src="lib/suggest/jquery.freebase.minitopic.js"></script>
     <script type="text/javascript" language="javascript" src="lib/suggest/freebase.suggest.js"></script>
@@ -133,59 +135,62 @@
               input.value = eval(input.id);
             });
             $("#progressbar").progressbar({value:0});
+            window.location.hash = ""
+        		$.historyInit(displayReconChoices);
         });
     </script>
 </head>
 <body id="dt_example">
     <div id='main_app'>
-      <div id="spreadsheetInput" class="container">
-          <h3>Copy your spreadsheet here:</h3>
-          <textarea rows="15" cols="80" name="spreadsheet" id="spreadsheet"></textarea><br/>
-          <button onclick="handleNewSpreadsheet()">Parse Spreadsheet</button>
-          <button onclick="$('#spreadsheet')[0].value = sampleData">Sample Data</button>
-          <p/>
-      </div>
+      <div id="gettingInput">
+        <div id="spreadsheetInput" class="container">
+            <h3>Copy your spreadsheet here:</h3>
+            <textarea rows="15" cols="80" name="spreadsheet" id="spreadsheet"></textarea><br/>
+            <button onclick="handleNewSpreadsheet()">Parse Spreadsheet</button>
+            <button onclick="$('#spreadsheet')[0].value = sampleData">Sample Data</button>
+            <p/>
+        </div>
     
-      <div id="formatDisambiguation" class="container invisible">
-          <h3>Which of these is correct?</h3>
-          <div class='selection' id='separateRows'>
-            <button onclick='$("#formatDisambiguation").hide(); showConfirmationSpreadsheet();'>
-              Each row is separate
-            </button>
-            <table>
-              <thead>
-                <tr class='headers'></tr>
-              </thead>
-              <tbody>
+        <div id="formatDisambiguation" class="container invisible">
+            <h3>Which of these is correct?</h3>
+            <div class='selection' id='separateRows'>
+              <button onclick='$("#formatDisambiguation").hide(); showConfirmationSpreadsheet();'>
+                Each row is separate
+              </button>
+              <table>
+                <thead>
+                  <tr class='headers'></tr>
+                </thead>
+                <tbody>
                 
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
 
-          <div class='selection' id='combineRows'>
-            <button onclick='combineRows(); $("#formatDisambiguation").hide(); showConfirmationSpreadsheet();'>
-              Combine rows missing the first column
-            </button>
-            <table>
-              <thead>
-                <tr class='headers'></tr>
-              </thead>
-              <tbody>
+            <div class='selection' id='combineRows'>
+              <button onclick='combineRows(); $("#formatDisambiguation").hide(); showConfirmationSpreadsheet();'>
+                Combine rows missing the first column
+              </button>
+              <table>
+                <thead>
+                  <tr class='headers'></tr>
+                </thead>
+                <tbody>
               
-              </tbody>
-            </table>
-          </div>
-      </div>
+                </tbody>
+              </table>
+            </div>
+        </div>
     
-      <div id="spreadsheetPreview" class="container invisible">
-          <h3>Does this look right?</h3>
-          <div id="spreadsheetDiv" class="container">
-          </div>
-          <br/>
-          <button onclick='$("#spreadsheetInput").show();$("#spreadsheetPreview").hide()'>&lt; Back</button>
-          <button style='float:right' onclick='continueToReconciliation();'>Continue &gt;</button>
+        <div id="spreadsheetPreview" class="container invisible">
+            <h3>Does this look right?</h3>
+            <div id="spreadsheetDiv" class="container">
+            </div>
+            <br/>
+            <button onclick='$("#spreadsheetInput").show();$("#spreadsheetPreview").hide()'>&lt; Back</button>
+            <button style='float:right' onclick='continueToReconciliation();'>Continue &gt;</button>
+        </div>
       </div>
-      
 
       
       <div id="tabs" class="invisible">
@@ -223,7 +228,7 @@
                     <tbody></tbody>
                   </table>
                   <h4>Or:</h4>
-                  <button class="skipButton" onclick="handleReconChoice()">Skip This Item</button>
+                  <button class="skipButton manualSelection">Skip This Item</button>
                   |
                   <label class="findItem" for="find_topic">Search For Another Topic:</label>
                   <input type="text" name="find_topic">
