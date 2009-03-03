@@ -143,11 +143,12 @@ function parseSpreadsheet(spreadsheet) {
     rows = [];
     while(spreadsheet.charAt(position) != ""){
         var rowArray = parseLine();
-        var row = {};
+        var row = {"/rec_ui/id": internalIDCounter++,
+                   "/rec_ui/headers": headers,
+                   "/rec_ui/mql_props": mqlProps};
         for (var i=0; i < headers.length; i++)
             if (rowArray[i] != "")
                 row[headers[i]] = rowArray[i];
-        row.internalId = internalIDCounter++;
         rows.push(row);
     }
 }
@@ -251,10 +252,10 @@ function objectifyRows() {
                               '/type/object/type':meta.expected_type['id'],
                               '/rec_ui/headers': ['/type/object/name','/type/object/type'],
                               '/rec_ui/mql_props': [],
-                              "internalId":internalIDCounter++};
+                              "/rec_ui/column_val": true,
+                              "/rec_ui/id":internalIDCounter++};
                 if (meta.reverse_property != null){
                     result[meta.reverse_property] = row;
-                    result['/rec_ui/reverse'] = meta.reverse_property;
                     result['/rec_ui/headers'].push(meta.reverse_property);
                     result['/rec_ui/mql_props'].push(meta.reverse_property);
                 }
@@ -298,7 +299,7 @@ function autoReconcile() {
 
 function getCandidates(row, callback) {
     var query = {}
-    var headers = getHeaders(row);
+    var headers = row["/rec_ui/headers"];
     for (var i = 0; i < headers.length; i++) {
         var prop = headers[i];
         var value = row[prop];
@@ -329,18 +330,18 @@ function autoReconcileResults(row) {
         row["id"] = "None";
         warn("No results:");
         warn(row);
-    }
-        
+        addColumnRecCases(row);
+    }        
     // match found:
     else if(row.reconResults[0]["match"] == true) {
         row["id"] = row.reconResults[0]["id"];
+        addColumnRecCases(row);
     }
     else {
         manualQueue.push(row);
         if (manualQueue.length == 1)
             manualReconcile();
     }
-    addColumnRecCases(row);
     autoReconcile();
 }
 
@@ -362,17 +363,17 @@ function manualReconcile() {
 }
 
 function displayReconChoices(row) {
-    if (! $("#manualReconcile" + row.internalId)[0])
+    if (! $("#manualReconcile" + row["/rec_ui/id"])[0])
         renderReconChoices(row);
-    $("#manualReconcile" + row.internalId).show();
+    $("#manualReconcile" + row["/rec_ui/id"]).show();
 }
 
 function renderReconChoices(row) {
     if (row == undefined) return;
     var template = $("#manualReconcileTemplate").clone();
-    template[0].id = "manualReconcile" + row.internalId;
-    var headers = getHeaders(row);
-    var mqlProps = getMQLProps(row);
+    template[0].id = "manualReconcile" + row['/rec_ui/id'];
+    var headers = row["/rec_ui/headers"];
+    var mqlProps = row["/rec_ui/mql_props"];
     
     var currentRecord = $(".recordVals",template);
     for(var i = 0; i < headers.length; i++) {
@@ -432,7 +433,7 @@ function renderCandidate(result, mqlProps) {
 }
 
 function fetchMqlProps(row) {
-    var mqlProps = getMQLProps(row);
+    var mqlProps = row["/rec_ui/mql_props"];
     for (var i = 0; i < row.reconResults.length; i++) {
         var result = row.reconResults[i];
         var query = {"id":result["id"],
@@ -472,7 +473,7 @@ function fetchMqlProps(row) {
 }
 
 function fillInMQLProps(row, mqlResult) {
-    var context = $("#manualReconcile" + row.internalId);
+    var context = $("#manualReconcile" + row["/rec_ui/id"]);
     if (mqlResult["code"] != "/api/status/ok" || mqlResult["result"] == null) {
         //don't show annoying loading symbols indefinitely if there's an error
         $(".replaceme",context).empty();
@@ -505,7 +506,7 @@ function handleReconChoice(id) {
     if (id != undefined)
         row["id"] = id;
     addColumnRecCases(row);
-    $("#manualReconcile" + row.internalId).remove();
+    $("#manualReconcile" + row["/rec_ui/id"]).remove();
     updateUnreconciledCount();
     manualReconcile();
 }
@@ -650,13 +651,6 @@ function displayValue(value) {
     if (value.id != undefined && value.id != "None")
         return freebaseLink(value.id, textValue(value["/type/object/name"]));
     return textValue(value);
-}
-
-function getHeaders(row) {
-    return row['/rec_ui/headers'] || headers;
-}
-function getMQLProps(row) {
-    return row['/rec_ui/mql_props'] || mqlProps;
 }
 
 function freebaseLink(id, text) {
