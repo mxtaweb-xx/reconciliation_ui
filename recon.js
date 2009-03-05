@@ -37,7 +37,9 @@ var headers;
 var rows;
 var mqlProps;
 var mqlMetadata = {};
-    
+var complexHeaders = [];
+var simpleHeaders = [];
+
 
 function setReconciliationURL() {
     if (window.location.href.substring(0,4) == "file") {
@@ -138,18 +140,25 @@ function parseSpreadsheet(spreadsheet) {
     }
     
     headers = parseLine();
-    
     //get, or make the id column
     if (!contains(headers, "id"))
         headers.push("id");
     
+    $.each(headers, function(i,header) {
+        if (charIn(header,":"))
+            complexHeaders.push(header);
+        else
+            simpleHeaders.push(header);
+    });
+    
     mqlProps = [];
-    for(var i =0; i < headers.length; i++)
-        if (!contains(["/type/object/name","/type/object/type","id","/type/object/id"], headers[i]) && headers[i][0] == "/")
+    $.each(simpleHeaders, function(i,header) {
+        if (!contains(["/type/object/name","/type/object/type","id","/type/object/id"], header) && header.charAt(0) == "/")
             mqlProps.push(headers[i]);
+    });
     
     rows = [];
-    var rowHeaders = headers.slice();
+    var rowHeaders  = simpleHeaders.slice();
     var rowMqlProps = mqlProps.slice();
     while(spreadsheet.charAt(position) != ""){
         var rowArray = parseLine();
@@ -234,6 +243,9 @@ function fetchMQLPropMetadata(callback) {
     $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {queries:JSON.stringify(envelope)}, handler);
 }
 
+function isValueType(type) {
+    return contains(type['extends'], "/type/value");
+}
 function handleMQLPropMetadata(results) {
     console.assert(results.code == "/api/status/ok", results);
     var i = 0;
@@ -241,20 +253,20 @@ function handleMQLPropMetadata(results) {
     
     while (result != undefined) {
         console.assert(result.code == "/api/status/ok", result)
-        mqlMetadata[result.result['id']] = result.result;
-        if (mqlMetadata[result.result.expected_type] == undefined)
-            mqlMetadata[result.result.expected_type] = {reverse_property: result.result.id};
+        result = result.result;
+        mqlMetadata[result['id']] = result;
+        if (!isValueType(result.expected_type) && !contains(headers,result.id + ":id" ))
+//             insertAfter(headers, result.id, result.id + ":id");
+            headers.push(result.id + ":id");
+        if (mqlMetadata[result.expected_type] == undefined)
+            mqlMetadata[result.expected_type] = {reverse_property: result.id};
         result = results["q" + i++];
     }
     objectifyRows();
 }
 
 function objectifyRows() {
-    function isValueType(type) {
-        return contains(type['extends'], "/type/value");
-    }
-    for (var i = 0; i < rows.length; i++) {
-        var row = rows[i];
+    $.each(rows, function(i,row) {
         for (var prop in row) {
             function objectifyRowProperty(value) {
                 var result = newEntity({'/type/object/name':row[prop],
@@ -278,7 +290,20 @@ function objectifyRows() {
             else
                 row[prop] = objectifyRowProperty(row[prop]);
         }
-    }
+        $.each(complexHeaders, function(j,complexHeader) {
+            var value = row[complexHeader];
+            var parts = complexHeader.split(":");
+            var slot = row;
+            $.each(parts.slice(0,parts.length-1), function(k,part) {
+                if (slot[part] == undefined){
+                    console.error("error accessing" + part + " part of " + complexHeader);
+                    console.error(row);
+                }
+                slot = slot[part];
+            });
+            slot[parts[parts.length-1]] = value;
+        });
+    });
 }
 
 
@@ -328,7 +353,6 @@ function getCandidates(entity, callback) {
         entity.reconResults = results; 
         callback(entity);
     }
-    console.log(query);
     $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:4}, handler);
 }
 
@@ -545,20 +569,33 @@ function renderSpreadsheet() {
         }
         return values.join("\t");
     }
+    function getNestedVal(obj, prop) {
+        var parts = prop.split(":");
+        var slot = obj;
+        $.each(parts.slice(0,parts.length-1), function(k,part) {
+            if (slot[part] == undefined)
+                return undefined;
+            slot = slot[part];
+        });
+        return slot[parts[parts.length-1]];
+    }
     function encodeRow(row) {
         var lines = [[]];
         for (var i = 0; i < headers.length; i++){
-            var val = row[headers[i]];
+            var val = getNestedVal(row, headers[i]);
             if (typeof val == "string")
                 lines[0][i] = val;
             else if (typeof val == "undefined")
                 lines[0][i] = "";
-            else {
-                //val is an array
+            else if ($.isArray(val)){
                 for (var j = 0; j < val.length; j++) {
                     if (lines[j] == undefined) lines[j] = [];
                     lines[j][i] = val[j];
                 }
+            }
+            else {
+                //an object
+                lines[0][i] = textValue(val);
             }
         }
         return $.map(lines,encodeLine);
@@ -622,6 +659,13 @@ function idToClass(idName) {
 function contains(array, value) {
     for(var i = 0; i < array.length; i++)
         if (array[i] == value)
+            return true;
+    return false;
+}
+
+function charIn(string, chr) {
+    for(var i = 0; i < string.length; i++)
+        if (string.charAt(i) === chr)
             return true;
     return false;
 }
@@ -698,7 +742,10 @@ function numProperties(obj) {
 }
 
 
-//create debugging tools if they're not available
+/*
+** create debugging tools if they're not available
+*/
+
 if (console == undefined)
     var console = {}
 if (console.assert == undefined)
