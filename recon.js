@@ -37,6 +37,7 @@ var headers;
 var rows;
 var mqlProps;
 var mqlMetadata = {};
+    
 
 function setReconciliationURL() {
     if (window.location.href.substring(0,4) == "file") {
@@ -234,12 +235,12 @@ function fetchMQLPropMetadata(callback) {
 }
 
 function handleMQLPropMetadata(results) {
-    assert(results.code == "/api/status/ok", results);
+    console.assert(results.code == "/api/status/ok", results);
     var i = 0;
     var result = results["q" + i++];
     
     while (result != undefined) {
-        assert(result.code == "/api/status/ok", result)
+        console.assert(result.code == "/api/status/ok", result)
         mqlMetadata[result.result['id']] = result.result;
         if (mqlMetadata[result.result.expected_type] == undefined)
             mqlMetadata[result.result.expected_type] = {reverse_property: result.result.id};
@@ -327,7 +328,7 @@ function getCandidates(entity, callback) {
         entity.reconResults = results; 
         callback(entity);
     }
-    log(query);
+    console.log(query);
     $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:4}, handler);
 }
 
@@ -336,8 +337,8 @@ function autoReconcileResults(entity) {
     // no results, set to None:
     if(entity.reconResults.length == 0) {
         entity["id"] = "None";
-        warn("No results:");
-        warn(entity);
+        console.warn("No results:");
+        console.warn(entity);
         addColumnRecCases(entity);
     }        
     // match found:
@@ -492,7 +493,7 @@ function fillInMQLProps(entity, mqlResult) {
     if (mqlResult["code"] != "/api/status/ok" || mqlResult["result"] == null) {
         //don't show annoying loading symbols indefinitely if there's an error
         $(".replaceme",context).empty();
-        error(mqlResult);
+        console.error(mqlResult);
         return;
     }
 
@@ -625,34 +626,6 @@ function contains(array, value) {
     return false;
 }
 
-function assert(bool, message) {
-    if (console.assert != undefined)
-        console.assert(bool, message);
-    else
-        if (!bool) error(message);
-}
-function error(message) {
-    if (console.error != undefined)
-        console.error(message);
-    else
-        node("div",JSON.stringify(message)).appendTo("#errors");
-    return message
-}
-function warn(message) {
-    if (console.warn != undefined)
-        console.warn(message);
-    else
-        node("div",JSON.stringify(message)).appendTo("#warnings");
-    return message
-}
-function log(message) {
-    if (console.log != undefined)
-        console.log(message);
-    else
-        node("div",JSON.stringify(message)).appendTo("#log");
-    return message
-}
-
 function textValue(value) {
     if ($.isArray(value))
         return "[" + $.map(value, textValue).join(", ") + "]";
@@ -723,3 +696,18 @@ function numProperties(obj) {
         i++;
     return i;
 }
+
+
+//create debugging tools if they're not available
+if (console == undefined)
+    var console = {}
+if (console.assert == undefined)
+    console.assert = function(bool,message){if (!bool) console.error(message)}
+//These messages don't go anywhere at the moment, but it'd be very easy to create the
+// places where they'd go
+if (console.error == undefined)
+    console.error = function(message){node("div",JSON.stringify(message)).appendTo("#errors"); return message;}
+if (console.warn == undefined)
+    console.warn = function(message){node("div",JSON.stringify(message)).appendTo("#warnings"); return message;}
+if (console.log == undefined)
+    console.log = function(message){node("div",JSON.stringify(message)).appendTo("#log"); return message;}
