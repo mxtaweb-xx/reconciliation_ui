@@ -368,6 +368,7 @@ function manualReconcile() {
     else{
         $(".manualQueueEmpty").show();
         $(".manualReconciliation").hide();
+        $(".manualReconChoices:visible").remove();
     }
 }
 
@@ -522,7 +523,6 @@ function handleReconChoice(entity,freebaseId) {
     if (freebaseId != undefined)
         entity.id = freebaseId;
     addColumnRecCases(entity);
-    $("#manualReconcile" + entity["/rec_ui/id"]).remove();
     updateUnreconciledCount();
     manualReconcile();
 }
