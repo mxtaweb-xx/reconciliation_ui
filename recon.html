@@ -135,7 +135,8 @@
               input.value = eval(input.id);
             });
             $("#progressbar").progressbar({value:0});
-            window.location.hash = ""
+            if (window.location.hash != "")
+              window.location.hash = ""
         		$.historyInit(displayReconChoices);
         });
     </script>
