@@ -295,13 +295,13 @@ function objectifyRows() {
             var parts = complexHeader.split(":");
             var slot = row;
             $.each(parts.slice(0,parts.length-1), function(k,part) {
-                if (slot[part] == undefined){
-                    console.error("error accessing" + part + " part of " + complexHeader);
-                    console.error(row);
-                }
-                slot = slot[part];
+                if (slot == undefined || slot[part] == undefined)
+                    slot = undefined;
+                else
+                    slot = slot[part];
             });
-            slot[parts[parts.length-1]] = value;
+            if (slot != undefined)
+                slot[parts[parts.length-1]] = value;
         });
     });
 }
