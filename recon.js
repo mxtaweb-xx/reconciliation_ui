@@ -746,15 +746,16 @@ function numProperties(obj) {
 ** create debugging tools if they're not available
 */
 
-if (console == undefined)
-    var console = {}
+if (window.console == undefined)
+    window.console = {};
+console = window.console || {}
 if (console.assert == undefined)
     console.assert = function(bool,message){if (!bool) console.error(message)}
 //These messages don't go anywhere at the moment, but it'd be very easy to create the
 // places where they'd go
 if (console.error == undefined)
-    console.error = function(message){node("div",JSON.stringify(message)).appendTo("#errors"); return message;}
+    console.error = function(message){/*node("div",JSON.stringify(message)).appendTo("#errors");*/ return message;}
 if (console.warn == undefined)
-    console.warn = function(message){node("div",JSON.stringify(message)).appendTo("#warnings"); return message;}
+    console.warn = function(message){/*node("div",JSON.stringify(message)).appendTo("#warnings");*/ return message;}
 if (console.log == undefined)
-    console.log = function(message){node("div",JSON.stringify(message)).appendTo("#log"); return message;}
+    console.log = function(message){/*node("div",JSON.stringify(message)).appendTo("#log");*/ return message;}
