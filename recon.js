@@ -37,8 +37,8 @@ var headers;
 var rows;
 var mqlProps;
 var mqlMetadata = {};
-var complexHeaders = [];
-var simpleHeaders = [];
+var complexHeaders;
+var simpleHeaders;
 
 
 function setReconciliationURL() {
@@ -144,6 +144,8 @@ function parseSpreadsheet(spreadsheet) {
     if (!contains(headers, "id"))
         headers.push("id");
     
+    complexHeaders = [];
+    simpleHeaders = [];
     $.each(headers, function(i,header) {
         if (charIn(header,":"))
             complexHeaders.push(header);
