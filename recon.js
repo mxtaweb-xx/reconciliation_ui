@@ -29,7 +29,7 @@
 
 var totalRecords = 0;
 
-var manualQueue = [];
+var manualQueue = {};
 var automaticQueue = [];
 var freebase_url = "http://www.freebase.com/"
 var reconciliation_url = "";
@@ -39,7 +39,6 @@ var mqlProps;
 var mqlMetadata = {};
 var complexHeaders;
 var simpleHeaders;
-
 
 function setReconciliationURL() {
     if (window.location.href.substring(0,4) == "file") {
@@ -78,11 +77,14 @@ function parseSpreadsheet(spreadsheet) {
             position++;
         }
         function isEndOfLine() {
-            var c = spreadsheet.charAt(position);
-            if (c == "\r" && spreadsheet.charAt(position+1) == "\n"){
-                position++; return true;
+            switch(spreadsheet.charAt(position)){
+              case "": 
+              case "\n": return true;
+              case "\r": if (spreadsheet.charAt(position+1) == "\n") {
+                            position++; return true;                            
+                         }
+              default: return false;
             }
-            return c == "" || spreadsheet.charAt(position) == "\n" ;
         }
         //If this gives me any more trouble, I'm just doing a state machine
         while(true) {
@@ -144,15 +146,10 @@ function parseSpreadsheet(spreadsheet) {
     if (!contains(headers, "id"))
         headers.push("id");
     
-    complexHeaders = [];
-    simpleHeaders = [];
-    $.each(headers, function(i,header) {
-        if (charIn(header,":"))
-            complexHeaders.push(header);
-        else
-            simpleHeaders.push(header);
-    });
-    
+    var part = partition(headers, function(header) {return charIn(header,":");});
+    complexHeaders = part[0];
+    simpleHeaders = part[1];
+        
     mqlProps = [];
     $.each(simpleHeaders, function(i,header) {
         if (!contains(["/type/object/name","/type/object/type","id","/type/object/id"], header) && header.charAt(0) == "/")
@@ -166,9 +163,12 @@ function parseSpreadsheet(spreadsheet) {
         var rowArray = parseLine();
         var entity = newEntity({"/rec_ui/headers": rowHeaders,
                                 "/rec_ui/mql_props": rowMqlProps});
-        for (var i=0; i < headers.length; i++)
-            if (rowArray[i] != "")
-                entity[headers[i]] = rowArray[i];
+        for (var i=0; i < headers.length; i++){
+            var val = rowArray[i];
+            if (rowArray[i] === "")
+                val = undefined;
+            entity[headers[i]] = [val];
+        }   
         rows.push(entity);
     }
 }
@@ -179,15 +179,9 @@ function combineRows() {
         var mergeRow = rows[rowIndex];
         var i;
         for (i = rowIndex+1; i < rows.length && rows[i][headers[0]] == undefined;i++) {
-            for (var j = 0; j<headers.length; j++) {
-                var col = headers[j];
-                if (rows[i][col] == undefined)
-                    continue;
-                if (typeof(mergeRow[col]) == "string")
-                    mergeRow[col] = [mergeRow[col], rows[i][col]];
-                else
-                    mergeRow[col].push(rows[i][col]);
-            }
+            $.each(headers, function(j,header) {
+                mergeRow[header].push(rows[i][header]);
+            });
         }
         //remove the rows that we've combined in
         rows.splice(rowIndex+1, (i - rowIndex) - 1);
@@ -206,7 +200,7 @@ function getAmbiguousRowIndex(from) {
 
     var startingRowIdx;
     for(var i = from; i < rows.length; i++) {
-        if (rows[i][headers[0]] != "" && rows[i][headers[0]] != undefined)
+        if (rows[i][headers[0]][0] != "" && rows[i][headers[0]][0] != undefined)
             startingRowIdx = i;
         else if (startingRowIdx != undefined)
             return startingRowIdx;
@@ -236,8 +230,10 @@ function fetchMQLPropMetadata(callback) {
         };
     }
     var envelope = {};
-    for (var i = 0; i < mqlProps.length; i++)
-        envelope["q" + i] = {"query": getQuery(mqlProps[i])};
+    $.each(mqlProps, function(i, mqlProp) {
+        envelope["q" + i] = {"query": getQuery(mqlProp)};
+    })
+    console.log(envelope);
     function handler(results) {
         handleMQLPropMetadata(results);
         callback();
@@ -245,9 +241,6 @@ function fetchMQLPropMetadata(callback) {
     $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {queries:JSON.stringify(envelope)}, handler);
 }
 
-function isValueType(type) {
-    return contains(type['extends'], "/type/value");
-}
 function handleMQLPropMetadata(results) {
     console.assert(results.code == "/api/status/ok", results);
     var i = 0;
@@ -265,6 +258,7 @@ function handleMQLPropMetadata(results) {
         result = results["q" + i++];
     }
     objectifyRows();
+    $(".initialLoadingMessage").hide();
 }
 
 function objectifyRows() {
@@ -297,7 +291,7 @@ function objectifyRows() {
             var parts = complexHeader.split(":");
             var slot = row;
             $.each(parts.slice(0,parts.length-1), function(k,part) {
-                if (slot == undefined || slot[part] == undefined)
+                if (slot === undefined || slot[part] === undefined)
                     slot = undefined;
                 else
                     slot = slot[part];
@@ -305,6 +299,32 @@ function objectifyRows() {
             if (slot != undefined)
                 slot[parts[parts.length-1]] = value;
         });
+        
+        /* Recursively removes undefined objects from arrays anywhere in an object.
+            Also, collapses singleton lists to single objects, to work around a bug in
+            the reconciliation service.
+            Supports self referential objects (though not self referential arrays)*/
+        function cleanup(obj, closed) {
+            if (closed === undefined) closed = {};
+            if (closed[obj])
+                return obj; //already processed this object
+            if (typeof(obj) === "String")
+                return obj
+            else if (obj === undefined)
+                return obj
+            else if ($.isArray(obj)) {
+                var arr = filter(obj, function(val){return val !== undefined});
+                if (arr.length === 1)
+                    return cleanup(arr[0], closed);
+                else
+                    return $.map(arr, function (val) {return cleanup(val,closed);});
+            }
+            closed[obj] = true;
+            for (var key in obj)
+                obj[key] = cleanup(obj[key], closed);
+            return obj
+        }
+        cleanup(row);
     });
 }
 
@@ -711,6 +731,9 @@ function addColumnRecCases(row) {
     }
 }
 
+function isValueType(type) {
+    return contains(type['extends'], "/type/value");
+}
 
 //I can't believe I can't find a better way of doing these:
 function getFirstValue(obj) {
@@ -726,8 +749,7 @@ function getSecondValue(obj) {
             return obj[key];
         i++;
     }
-    return undefined
-    
+    return undefined;
 }
 
 function isObjectEmpty(obj) {
@@ -741,6 +763,26 @@ function numProperties(obj) {
     for (var key in obj)
         i++;
     return i;
+}
+
+/* Returns a copy of the array with those elements of that
+  don't satisfy the predicate filtered out*/
+function filter(array, predicate) {
+    return partition(array, predicate)[0];
+}
+
+/* Returns two new arrays, the first with those elements that satisfy the 
+  predicate, the second with those that don't */
+function partition(array, predicate) {
+    var good = [];
+    var bad = [];
+    $.each(array, function(i, val) {
+        if (predicate(val))
+            good.push(val);
+        else
+            bad.push(val);
+    });
+    return [good,bad];
 }
 
 

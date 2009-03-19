@@ -19,13 +19,13 @@
     <script type="text/javascript" language="javascript" src="lib/jquery.ui/ui/ui.progressbar.js"></script>
     <script type="text/javascript" language="javascript" src="lib/dataTables/media/js/jquery.dataTables.js"></script>
     <script type="text/javascript" language="javascript" src="lib/jquery.history.js"></script>
-    
 
     <script type="text/javascript" language="javascript" src="lib/suggest/jquery.freebase.minitopic.js"></script>
     <script type="text/javascript" language="javascript" src="lib/suggest/freebase.suggest.js"></script>
 
     <script type="text/javascript" language="javascript" src="recon.js"></script>
     <script type="text/javascript" language="javascript" src="sampledata.js"></script>
+    <script type="text/javascript" language="javascript" src="complexdata.js"></script>
     <script type="text/javascript" language="javascript" charset="utf-8">
         function handleNewSpreadsheet()
         {
@@ -55,19 +55,20 @@
                         html += val;
                     else
                         for (var j = 0; j < val.length; j++)
-                            html += val[j] + "<br/>";
+                            if (val[j] != undefined)
+                              html += val[j] + "<br/>";
                     html += "</td>";
                 }
                 return html + "</tr>";
             } 
             
             var separateRows = rowHTML(rows[startingRowIdx]);
-            for (var i = startingRowIdx + 1; i < rows.length && rows[i][headers[0]] == undefined; i++)
+            for (var i = startingRowIdx + 1; i < rows.length && rows[i][headers[0]][0] == undefined; i++)
                 separateRows += rowHTML(rows[i]);
             $("#separateRows tbody").html(separateRows);
 
-            var combinedRow = clone(rows[startingRowIdx]); // produces a copy of the object
-            for (var i = startingRowIdx + 1; i < rows.length && rows[i][headers[0]] == undefined; i++){
+            var combinedRow = clone(rows[startingRowIdx]);
+            for (var i = startingRowIdx + 1; i < rows.length && rows[i][headers[0]][0] == undefined; i++){
                 for (var j = 0; j<headers.length; j++){
                     var col = headers[j];
                     if (rows[i][col] == undefined) continue;
@@ -94,8 +95,16 @@
                     var val = rows[i][headers[j]];
                     if (val == undefined)
                         val = "";
-                    if (typeof val != "string")
-                        val = "[" + val.join(", ") + "]";
+                    if ($.isArray(val)){
+                        var arr = filter(val, function(elem) {return elem !== undefined});
+                        if (arr.length === 0)
+                            val = "";
+                        else if (arr.length === 1)
+                            val = "" + arr[0];
+                        else
+                            val = "[" + arr.join(", ") + "]";
+                    }
+                        
                     row[j] = val;
                 }
                 spreadSheetData.aaData.push(row);
@@ -149,6 +158,7 @@
             <textarea rows="15" cols="80" name="spreadsheet" id="spreadsheet"></textarea><br/>
             <button onclick="handleNewSpreadsheet()">Parse Spreadsheet</button>
             <button onclick="$('#spreadsheet')[0].value = sampleData">Sample Data</button>
+            <button onclick="$('#spreadsheet')[0].value = complexData">Complex Sample</button>
             <p/>
         </div>
     
@@ -204,13 +214,16 @@
 
           <div id="spreadsheetReconcile" class="">
               <div class="manualQueueEmpty">
+                <div class="initialLoadingMessage">
+                    <h3>Loading, just a moment...</h3>
+                </div>
                 <div class="nowReconciling invisible">
                   <h3>Everything's working fine automatically</h3>  
                   As the auto-reconciler finds topics that it's unable to reconcile, they will appear here to give you a chance at resolving them
                 </div>
                 <div class="notReconciling invisible">
                   <h3>All done.</h3>
-                  All of your records are now reconciled.  You can retrieve your updated spreadsheet by clicking the tab up above. 
+                  All of your records are now reconciled.  Retrieve your spreadsheet by clicking the tab up above.
                 </div>
               </div>
               
