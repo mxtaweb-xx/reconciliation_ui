@@ -178,10 +178,11 @@ function combineRows() {
     while(rowIndex = getAmbiguousRowIndex(rowIndex)) {
         var mergeRow = rows[rowIndex];
         var i;
-        for (i = rowIndex+1; i < rows.length && rows[i][headers[0]] == undefined;i++) {
-            $.each(headers, function(j,header) {
-                mergeRow[header].push(rows[i][header]);
-            });
+        for (i = rowIndex+1; i < rows.length && rows[i][headers[0]][0] == undefined;i++) {
+            for (var j = 0; j<headers.length; j++) {
+                var col = headers[j];
+                mergeRow[col].push(rows[i][col][0]);
+            }
         }
         //remove the rows that we've combined in
         rows.splice(rowIndex+1, (i - rowIndex) - 1);
@@ -218,20 +219,22 @@ function spreadsheetParsed(callback) {
 }
 
 function fetchMQLPropMetadata(callback) {
-    function getQuery(propID) {
+    function getQuery(prop) {
         return {
-              "expected_type" : {
-                  "extends" : [],
-                  "id" : null
-              },
-              "reverse_property" : null,
-              "type" : "/type/property",
-              "id" : propID
-        };
+            "expected_type" : {
+                "extends" : [],
+                "id" : null
+            },
+            "reverse_property" : null,
+            "type" : "/type/property",
+            "id" : prop
+        }
     }
     var envelope = {};
-    $.each(mqlProps, function(i, mqlProp) {
-        envelope["q" + i] = {"query": getQuery(mqlProp)};
+    $.each(mqlProps.concat(complexHeaders), function(i, mqlProp) {
+        $.each(mqlProp.split(":"), function(i, simpleProp) {
+            envelope[simpleProp.replace(/\//g,'Z')] = {"query": getQuery(simpleProp)};
+        })
     })
     console.log(envelope);
     function handler(results) {
@@ -242,31 +245,32 @@ function fetchMQLPropMetadata(callback) {
 }
 
 function handleMQLPropMetadata(results) {
-    console.assert(results.code == "/api/status/ok", results);
-    var i = 0;
-    var result = results["q" + i++];
-    
-    while (result != undefined) {
-        console.assert(result.code == "/api/status/ok", result)
-        result = result.result;
-        mqlMetadata[result['id']] = result;
-        if (!isValueType(result.expected_type) && !contains(headers,result.id + ":id" ))
-//             insertAfter(headers, result.id, result.id + ":id");
-            headers.push(result.id + ":id");
-        if (mqlMetadata[result.expected_type] == undefined)
-            mqlMetadata[result.expected_type] = {reverse_property: result.id};
-        result = results["q" + i++];
-    }
+    console.assert(results.code == "/api/status/ok", results);    
+    $.each(mqlProps.concat(complexHeaders), function(_,complexProp){
+        var partsSoFar = [];
+        $.each(complexProp.split(":"), function(_, mqlProp) {
+            var result = results[mqlProp.replace(/\//g,'Z')];
+            partsSoFar.push(mqlProp);
+            console.assert(result.code == "/api/status/ok", result)
+            result = result.result;
+            mqlMetadata[result['id']] = result;
+            if (!isValueType(result.expected_type) && !contains(headers,result.id + ":id" ))
+//                 insertAfter(headers, result.id, result.id + ":id");
+                headers.push(partsSoFar.join(":") + ":id");
+            if (mqlMetadata[result.expected_type] == undefined)
+                mqlMetadata[result.expected_type] = {reverse_property: result.id};
+        });
+    })
     objectifyRows();
     $(".initialLoadingMessage").hide();
 }
 
 function objectifyRows() {
-    $.each(rows, function(i,row) {
+    $.each(rows, function(_,row) {
         for (var prop in row) {
             function objectifyRowProperty(value) {
-                var result = newEntity({'/type/object/name':row[prop],
-                              '/type/object/type':meta.expected_type['id'],
+                var result = newEntity({'/type/object/name':row[meta.id],
+                              '/type/object/type':meta.expected_type.id,
                               '/rec_ui/headers': ['/type/object/name','/type/object/type'],
                               '/rec_ui/mql_props': [],
                               "/rec_ui/column_val": true});
@@ -286,18 +290,46 @@ function objectifyRows() {
             else
                 row[prop] = objectifyRowProperty(row[prop]);
         }
-        $.each(complexHeaders, function(j,complexHeader) {
-            var value = row[complexHeader];
+        $.each(complexHeaders, function(_,complexHeader) {
+            var valueArray = row[complexHeader];
             var parts = complexHeader.split(":");
-            var slot = row;
-            $.each(parts.slice(0,parts.length-1), function(k,part) {
-                if (slot === undefined || slot[part] === undefined)
-                    slot = undefined;
+            var slot;
+            function cvtEntity(meta, parent) {
+                var cvt = newEntity({"/type/object/type":meta.expected_type.id,
+                                     "/rec_ui/is_cvt":true});
+                if (meta.reverse_property != null)
+                    cvt[meta.reverse_property] = parent;
+                return cvt;
+            }
+            var firstPart = parts[0];
+            $.each(valueArray, function(i,value) {
+                if (value === undefined)
+                    return; //read as continue
+                var cvt = cvtEntity(mqlMetadata[firstPart], row);
+                if (firstPart in row){
+                    if (row[firstPart][i] === undefined)
+                        row[firstPart][i] = cvt;
+                    else
+                        cvt = row[firstPart][i];
+                }
                 else
+                    row[firstPart] = [cvt];
+                slot = cvt;
+                $.each(parts.slice(1,parts.length-1), function(_,part) {
+                    if (!part in slot)
+                        slot[part] = cvtEntity(mqlMetadata[part], slot);
                     slot = slot[part];
-            });
-            if (slot != undefined)
+                });
+                var lastPart = parts[parts.length-1];
+                var meta = mqlMetadata[lastPart];
+                if (isValueType(meta.expected_type))
+                    slot[lastPart] = value;
+                else
+                    slot[lastPart] = newEntity({"/type/object/type":meta.expected_type.id,
+                                                "/type/object/name":value})
                 slot[parts[parts.length-1]] = value;
+            });
+            delete row[complexHeader];
         });
         
         /* Recursively removes undefined objects from arrays anywhere in an object.
@@ -320,8 +352,11 @@ function objectifyRows() {
                     return $.map(arr, function (val) {return cleanup(val,closed);});
             }
             closed[obj] = true;
-            for (var key in obj)
+            for (var key in obj){
                 obj[key] = cleanup(obj[key], closed);
+                if (obj[key] == undefined || ($.isArray(obj[key]) && obj[key].length == 0))
+                    delete obj[key];
+            }
             return obj
         }
         cleanup(row);

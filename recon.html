@@ -72,10 +72,10 @@
                 for (var j = 0; j<headers.length; j++){
                     var col = headers[j];
                     if (rows[i][col] == undefined) continue;
-                    if (typeof(combinedRow[col]) == "string")
-                        combinedRow[col] = [combinedRow[col], rows[i][col]];
+                    if (combinedRow[col].length === 1)
+                        combinedRow[col] = [combinedRow[col][0], rows[i][col][0]];
                     else
-                        combinedRow[col].push(rows[i][col]);
+                        combinedRow[col].push(rows[i][col][0]);
                 }
             }
 
@@ -95,7 +95,7 @@
                     var val = rows[i][headers[j]];
                     if (val == undefined)
                         val = "";
-                    if ($.isArray(val)){
+                    else if ($.isArray(val)){
                         var arr = filter(val, function(elem) {return elem !== undefined});
                         if (arr.length === 0)
                             val = "";
