@@ -665,6 +665,30 @@ function renderSpreadsheet() {
     $("#outputSpreadSheet")[0].value = lines.join("\n");
 }
 
+function getTriples(rows) {
+    var triples = [];
+    function isValidID(id) {
+        return id !== undefined && id !== "None";
+    }
+    $.each(rows, function(_,subject) {
+        if (!isValidID(subject.id)) {
+            console.log("subject blank - " subject['/rec_ui/id']);
+            return;
+        }
+        $.each(subject['/rec_ui/mql_props'], function(_, predicate) {
+            $.each($.makeArray(subject[predicate]), function(_, object) {
+                if  (isValueType(mqlMetadata[predicate].expected_type) || !isValidID(object.id)) {
+                   console.log("object blank - " + predicate + " " + subject['/rec_ui/id']);
+                   return;
+                }
+
+                triples.push([subject.id, predicate, object.id]);
+            })
+        });
+    });
+    return triples;
+}
+
 /*
 ** Progress indication
 */ 
