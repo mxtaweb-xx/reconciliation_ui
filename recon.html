@@ -207,7 +207,7 @@
       <div id="tabs" class="invisible">
           <ul>
               <li><a href="#spreadsheetReconcile"><span>Reconcile Record <span class="manual_count">(0)</span></span></a></li>
-              <li><a href="#spreadsheetRender"><span>Retrieve Spreadsheet</span></a></li>
+              <li><a href="#spreadsheetRender"><span>Retrieve Your Data</span></a></li>
           </ul>
 
 
@@ -255,6 +255,13 @@
               <h3>Copy your updated spreadsheet from here:</h3>
               <textarea rows="15" cols="80" name="outputSpreadSheet" id="outputSpreadSheet"></textarea><br/>
               <p/>
+              <h3>Upload your data to Freebase:</h3>
+              We've found <span class='triple_count'></span> assertions that you can upload.
+              <br/>
+              <label for="user_id">User Id: </label><input type="text" name="user_id" value="/user/rictic" id="user_id">
+              <button onclick='freeqWrite()'>Upload</button>
+              <div class="tripleStatus"></div>
+              <img src="spinner.gif" class="uploadingTriples invisible"/>
           </div>
       </div>
       <div id="progresscontainer" class="nowReconciling invisible">

@@ -640,20 +640,14 @@ function renderSpreadsheet() {
         var lines = [[]];
         for (var i = 0; i < headers.length; i++){
             var val = getNestedVal(row, headers[i]);
-            if (typeof val == "string")
-                lines[0][i] = val;
-            else if (typeof val == "undefined")
-                lines[0][i] = "";
-            else if ($.isArray(val)){
+            if ($.isArray(val)) {
                 for (var j = 0; j < val.length; j++) {
                     if (lines[j] == undefined) lines[j] = [];
-                    lines[j][i] = val[j];
+                    lines[j][i] = textValue(val[j]);
                 }
             }
-            else {
-                //an object
+            else
                 lines[0][i] = textValue(val);
-            }
         }
         return $.map(lines,encodeLine);
     }
@@ -663,30 +657,62 @@ function renderSpreadsheet() {
         lines = lines.concat(encodeRow(rows[i]));
 
     $("#outputSpreadSheet")[0].value = lines.join("\n");
+    triples = getTriples(rows);
+    $(".triple_count").html(triples.length)
 }
 
+var triples;
 function getTriples(rows) {
     var triples = [];
     function isValidID(id) {
-        return id !== undefined && id !== "None";
+        if ($.isArray(id))
+            id = id[0];
+        return id !== undefined && id !== "None" && $.trim(id) !== "";
     }
     $.each(rows, function(_,subject) {
         if (!isValidID(subject.id)) {
-            console.log("subject blank - " subject['/rec_ui/id']);
+//             console.log("subject blank - " + subject['/rec_ui/id']);
             return;
         }
         $.each(subject['/rec_ui/mql_props'], function(_, predicate) {
             $.each($.makeArray(subject[predicate]), function(_, object) {
                 if  (isValueType(mqlMetadata[predicate].expected_type) || !isValidID(object.id)) {
-                   console.log("object blank - " + predicate + " " + subject['/rec_ui/id']);
+//                    console.log("object blank or value - " + predicate + " " + subject['/rec_ui/id']);
                    return;
                 }
 
-                triples.push([subject.id, predicate, object.id]);
+                triples.push(subject.id + " " + predicate + " " + object.id);
             })
         });
     });
     return triples;
+}
+
+function freeqWrite() {
+    var payload = triples.join("\n")
+    var freeq_server = "http://oat.corp:8080/"
+    var freeq_instance = "test"
+
+    var params = { 'action_type': 'LOAD_TRIPLE',
+                   'graphport': 'graph01.sandbox.sjc1:8100',
+                   //'user': '/user/spreadsheet_bot',
+                   'user': '/user/mw_autobot',
+                   'operator': '/user/rictic',
+                   'comments': 'testing reconciliation ui spreadsheet loader',
+                   'payload': payload
+                 }
+    $(".uploadingTriples").show();
+    $.post(freeq_server + freeq_instance, params, function(data, type) {
+        var message;
+        if (data.status.code !== 200) {
+            console.error(data);
+            message = "There was an error with your upload.";
+        }
+        else
+            message = "Your data is being entered into freebase now.  <a href='" + data.result.status_url + "' target='_blank'>Click here</a> to see the status of your upload.";
+        $(".tripleStatus").html(message);
+        $(".uploadingTriples").hide();
+    }, "json");
 }
 
 /*
@@ -756,7 +782,12 @@ function textValue(value) {
         return "[" + $.map(value, textValue).join(", ") + "]";
     if (value == undefined || value == null)
         return "";
-    return value['/type/object/name'] || value;
+    if (typeof value === "object"){
+        var result = value['/type/object/name'];
+        if ($.isArray(result)) result = result[0];
+        return textValue(result);
+    }
+    return result;
 }
 
 function displayValue(value) {
