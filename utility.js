@@ -98,14 +98,14 @@ function textValue(value) {
         if ($.isArray(result)) result = result[0];
         return textValue(result);
     }
-    return result;
+    return value;
 }
 
 function displayValue(value) {
     if ($.isArray(value))
         return $.map(value, displayValue).join("<br/>");
     if (value == undefined || value == null)
-        return "[null]";
+        return "";
     if (value.id != undefined && value.id != "None")
         return freebaseLink(value.id, textValue(value["/type/object/name"]));
     return textValue(value);
