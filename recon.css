@@ -108,6 +108,11 @@ table.currentRecord {
     top:1px;
     right:1px;
 }
+#progresscontainer label.kind {
+    float: left;
+    margin-top:5px;
+    margin-left:3px;
+}
 #progressbar label {
     position: absolute;
     left: 50%;
