@@ -51,7 +51,10 @@ function renderSpreadsheet() {
         $.each(parts.slice(0,parts.length-1), function(k,part) {
             if (slot[part] == undefined)
                 return undefined;
-            slot = slot[part];
+            if ($.isArray(slot[part]))
+                slot = slot[part][0];
+            else
+                slot = slot[part];
         });
         return slot[parts[parts.length-1]];
     }
