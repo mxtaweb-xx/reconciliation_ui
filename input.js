@@ -124,10 +124,9 @@ function parseSpreadsheet(spreadsheet) {
     complexHeaders = part[0];
     simpleHeaders = part[1];
         
-    mqlProps = [];
-    $.each(simpleHeaders, function(i,header) {
-        if (!contains(["/type/object/name","/type/object/type","id","/type/object/id"], header) && header.charAt(0) == "/")
-            mqlProps.push(headers[i]);
+    mqlProps = filter(simpleHeaders, function(header) {
+        return  !contains(["/type/object/name","/type/object/type","id","/type/object/id"], header)
+             && header.charAt(0) == "/"
     });
     
     rows = [];
@@ -163,12 +162,12 @@ function combineRows() {
     }
 }
 
+/*
+*  Starting at `from+1`, look for the first row that has an entry in the
+*  first column which is followed by a row without an entry in the first
+*  column.
+*/
 function getAmbiguousRowIndex(from) {
-    /* 
-    Starting at `from+1`, look for the first row that has an entry in the
-    first column which is followed by a row without an entry in the first
-    column. 
-    */
     if (from == undefined)
         from = -1;
     from++;
@@ -225,7 +224,10 @@ function handleMQLPropMetadata(results) {
         $.each(complexProp.split(":"), function(_, mqlProp) {
             var result = results[mqlProp.replace(/\//g,'Z')];
             partsSoFar.push(mqlProp);
-            console.assert(result.code == "/api/status/ok", result)
+            if (result.code != "/api/status/ok"){
+                console.error(result);
+                return
+            }
             result = result.result;
             mqlMetadata[result['id']] = result;
             if (!isValueType(result.expected_type) && !contains(headers,result.id + ":id" ))

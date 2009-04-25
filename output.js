@@ -110,6 +110,7 @@ function getTriples(rows) {
     return triples;
 }
 
+var uploadResult;
 function freeqWrite() {
     var payload = triples.join("\n")
     var freeq_server = "http://oat.corp:8080/"
@@ -130,8 +131,10 @@ function freeqWrite() {
             console.error(data);
             message = "There was an error with your upload.";
         }
-        else
+        else{
+            uploadResult = data.result;
             message = "Your data is being entered into freebase now.  <a href='" + data.result.status_url + "' target='_blank'>Click here</a> to see the status of your upload.";
+        }
         $(".tripleStatus").html(message);
         $(".uploadingTriples").hide();
     }, "json");
