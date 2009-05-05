@@ -31,6 +31,8 @@
 **  Rendering the spreadsheet back to the user
 */
 
+var freeq_passthrough_url = "http://spreadsheet.rictic.user.dev.freebaseapps.com/freeq_passthrough"
+
 function renderSpreadsheet() {
     function encodeLine(arr) {
         var values = [];
@@ -81,6 +83,10 @@ function renderSpreadsheet() {
     $("#outputSpreadSheet")[0].value = lines.join("\n");
     triples = getTriples(rows);
     $(".triple_count").html(triples.length)
+    $.getJSON(freeq_passthrough_url + "?jsonp=?",{},function(data) {
+        if (data.status && data.status.code === 401)
+            $(".tripleStatus").show().html("You must login before you can continue.  <a href='" + data.login_url + "' target='_blank'>Click here to login</a>");
+    })
 }
 
 var triples;
@@ -113,29 +119,27 @@ function getTriples(rows) {
 var uploadResult;
 function freeqWrite() {
     var payload = triples.join("\n")
-    var freeq_server = "http://oat.corp:8080/"
-    var freeq_instance = "test"
-
-    var params = { 'action_type': 'LOAD_TRIPLE',
-                   'graphport': 'graph01.sandbox.sjc1:8100',
-                   //'user': '/user/spreadsheet_bot',
-                   'user': '/user/mw_autobot',
-                   'operator': '/user/rictic',
-                   'comments': 'testing reconciliation ui spreadsheet loader',
-                   'payload': payload
-                 }
+    $(".tripleStatus").hide();
     $(".uploadingTriples").show();
-    $.post(freeq_server + freeq_instance, params, function(data, type) {
+    $.post(freeq_passthrough_url, {payload:JSON.stringify(payload)}, function(data) {
+        $(".uploadingTriples").hide();
         var message;
-        if (data.status.code !== 200) {
+        if (!data.status) {
             console.error(data);
             message = "There was an error with your upload.";
         }
-        else{
+        else if (data.status.code === 401) {
+            message = "You must login before you can continue.  <a href='" + data.login_url + "' target='_blank'>Click here to login</a>";
+        }
+        else if (data.status.code === 200) {
             uploadResult = data.result;
             message = "Your data is being entered into freebase now.  <a href='" + data.result.status_url + "' target='_blank'>Click here</a> to see the status of your upload.";
         }
-        $(".tripleStatus").html(message);
-        $(".uploadingTriples").hide();
-    }, "json");
+        else {
+            console.error(data);
+            message = data.status.result;
+        }
+        $(".tripleStatus").show().html(message);
+    });
+    
 }
