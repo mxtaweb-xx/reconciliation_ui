@@ -298,6 +298,8 @@ function objectifyRows() {
                 });
                 var lastPart = parts[parts.length-1];
                 var meta = mqlMetadata[lastPart];
+                if (meta === undefined)
+                    return; //if we don't know what it is, leave it as it is
                 if (isValueType(meta.expected_type))
                     slot[lastPart] = value;
                 else
