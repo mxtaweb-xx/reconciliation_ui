@@ -162,3 +162,9 @@ button.skipButton {
 label.findItem {
     margin-left: 10px;
 }
+
+#reviewScreen .identicalMatch {
+    opacity:0.5;  
+    filter:alpha(opacity=50);  
+    -moz-opacity:0.5;
+}
