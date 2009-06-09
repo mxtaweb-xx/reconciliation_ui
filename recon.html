@@ -74,6 +74,7 @@
       <div id="tabs" class="invisible">
           <ul>
               <li><a href="#spreadsheetReconcile"><span>Reconcile Record <span class="manual_count">(0)</span></span></a></li>
+              <li><a href="#reviewScreen"><span>Review</span></a></li>
               <li><a href="#spreadsheetRender"><span>Retrieve Your Data</span></a></li>
           </ul>
 
@@ -111,13 +112,28 @@
                     <tbody></tbody>
                   </table>
                   <h4>Or:</h4>
-                  <button class="skipButton manualSelection">Skip This Item</button>
-                  |
+                  <button class="skipButton otherSelection" name="">Skip This Item</button>
+                  <button class="newButton otherSelection" name="None">Not in Freebase</button>
                   <label class="find_topic" for="find_topic">Search For Another Topic:</label>
                   <input type="text" name="find_topic">
                 </div>
                 <div class='clear'></div>
               </div>
+          </div>
+          
+<!--      Review what's been reconciled so far      -->
+          <div id='reviewScreen'>
+              <h3>Review these reconciliations:
+              <table>
+                  <tr><th>Your Input</th><th>Freebase Topic</th></tr>
+                  <tbody class='reconciliationsToReview'>
+                      
+                  </tbody>
+              </table>
+              <table class='invisible templates'>
+              <tr id='reviewReconciledTemplate'><td class='candidateName'>Stevie wonder</td><td class='freebaseName'>Stevie Wonder</td></tr>
+              <tr id='reviewNewTemplate'><td class='candidateName'>Stevie wonder</td><td>None - create a new one</td>
+              </table>
           </div>
           
 <!--      Give the user their data back      -->
@@ -154,23 +170,24 @@
     </div>
     
     
-    <script type="text/javascript" language="javascript" src="lib/json2.js"></script>
-     <script type="text/javascript" language="javascript" src="lib/jquery.js"></script>
-     <script type="text/javascript" language="javascript" src="lib/jquery.ui/ui/ui.core.js"></script>
-     <script type="text/javascript" language="javascript" src="lib/jquery.ui/ui/ui.tabs.js"></script>
-     <script type="text/javascript" language="javascript" src="lib/jquery.ui/ui/ui.progressbar.js"></script>
-     <script type="text/javascript" language="javascript" src="lib/dataTables/media/js/jquery.dataTables.js"></script>
-     <script type="text/javascript" language="javascript" src="lib/jquery.history.js"></script>
+     <script type="text/javascript" language="javascript" charset="utf-8" src="lib/json2.js"></script>
+     <script type="text/javascript" language="javascript" charset="utf-8" src="lib/jquery.js"></script>
+     <script type="text/javascript" language="javascript" charset="utf-8" src="lib/jquery.ui/ui/ui.core.js"></script>
+     <script type="text/javascript" language="javascript" charset="utf-8" src="lib/jquery.ui/ui/ui.tabs.js"></script>
+     <script type="text/javascript" language="javascript" charset="utf-8" src="lib/jquery.ui/ui/ui.progressbar.js"></script>
+     <script type="text/javascript" language="javascript" charset="utf-8" src="lib/dataTables/media/js/jquery.dataTables.js"></script>
+     <script type="text/javascript" language="javascript" charset="utf-8" src="lib/jquery.history.js"></script>
 
-     <script type="text/javascript" language="javascript" src="lib/suggest/jquery.freebase.minitopic.js"></script>
-     <script type="text/javascript" language="javascript" src="lib/suggest/freebase.suggest.js"></script>
+     <script type="text/javascript" language="javascript" charset="utf-8" src="lib/suggest/jquery.freebase.minitopic.js"></script>
+     <script type="text/javascript" language="javascript" charset="utf-8" src="lib/suggest/freebase.suggest.js"></script>
 
-     <script type="text/javascript" language="javascript" src="input.js"></script>
-     <script type="text/javascript" language="javascript" src="recon.js"></script>
-     <script type="text/javascript" language="javascript" src="output.js"></script>
-     <script type="text/javascript" language="javascript" src="utility.js"></script>
-     <script type="text/javascript" language="javascript" src="sampledata.js"></script>
-     <script type="text/javascript" language="javascript" src="complexdata.js"></script>
+     <script type="text/javascript" language="javascript" charset="utf-8" src="input.js"></script>
+     <script type="text/javascript" language="javascript" charset="utf-8" src="recon.js"></script>
+     <script type="text/javascript" language='javascript' charset="utf-8" src="review.js"></script>
+     <script type="text/javascript" language="javascript" charset="utf-8" src="output.js"></script>
+     <script type="text/javascript" language="javascript" charset="utf-8" src="utility.js"></script>
+     <script type="text/javascript" language="javascript" charset="utf-8" src="sampledata.js"></script>
+     <script type="text/javascript" language="javascript" charset="utf-8" src="complexdata.js"></script>
      <script type="text/javascript" language="javascript" charset="utf-8">
          function handleNewSpreadsheet()
          {
@@ -268,8 +285,9 @@
              var tabs = $("#tabs > ul");
              tabs.tabs();
              tabs.bind("tabsselect", function(event, ui) {
-                 if(ui.index == 0) manualReconcile();
-                 else if (ui.index == 1) renderSpreadsheet();
+                 if(ui.index == 0)       manualReconcile();
+                 else if(ui.index == 1)  renderReviews();
+                 else if (ui.index == 2) renderSpreadsheet();
              });
              $("#tabs").show();
              tabs.tabs("select", 0);

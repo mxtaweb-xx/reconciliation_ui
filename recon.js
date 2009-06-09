@@ -90,7 +90,8 @@ function autoReconcileResults(entity) {
     }        
     // match found:
     else if(entity.reconResults[0]["match"] == true) {
-        entity["id"] = entity.reconResults[0]["id"];
+        entity["id"] = entity.reconResults[0].id;
+        entity["/rec_ui/freebase_name"] = entity.reconResults[0].name;
         addColumnRecCases(entity);
     }
     else {
@@ -107,15 +108,16 @@ function autoReconcileResults(entity) {
 */
 
 function manualReconcile() {
-    var val = getFirstValue(manualQueue);
-    if(val != undefined) {
-        $.historyLoad(val["/rec_ui/id"])
-        renderReconChoices(getSecondValue(manualQueue)); //render-ahead the next one
-    }
-    else{
-        $(".manualQueueEmpty").show();
-        $(".manualReconciliation").hide();
-        $(".manualReconChoices:visible").remove();
+    if ($(".manualReconChoices:visible").length === 0) {
+        var val = getFirstValue(manualQueue);
+        if(val != undefined) {
+            $.historyLoad(val["/rec_ui/id"])
+            renderReconChoices(getSecondValue(manualQueue)); //render-ahead the next one
+        }
+        else{
+            $(".manualQueueEmpty").show();
+            $(".manualReconciliation").hide();
+        }
     }
 }
 
@@ -124,11 +126,9 @@ function displayReconChoices(entityID) {
     if (entity === undefined) return;
     $(".manualQueueEmpty").hide();
     $(".manualReconciliation").show();
-    //remove rather than hide to prevent memory leaks
-    $(".manualReconChoices:visible").remove();
-    
     if (! $("#manualReconcile" + entityID)[0])
         renderReconChoices(entity);
+    $(".manualReconChoices:visible").remove();
     $("#manualReconcile" + entityID).show();
 }
 
@@ -152,7 +152,7 @@ function renderReconChoices(entity) {
     
     var tableBody = $(".reconciliationCandidates table tbody", template);
     for (var i = 0; i < entity.reconResults.length; i++)
-        tableBody.append(renderCandidate(entity.reconResults[i], mqlProps));
+        tableBody.append(renderCandidate(entity.reconResults[i], mqlProps, entity));
 
     $('.reconciliationCandidates table tbody tr:odd', template).addClass('odd');
     $('.reconciliationCandidates table tbody tr:even', template).addClass('even');
@@ -161,13 +161,13 @@ function renderReconChoices(entity) {
         .bind("fb-select", function(e, data) { 
           handleReconChoice(entity["/rec_ui/id"], data.id);
         });
-    $(".manualSelection", template).click(function(val) {handleReconChoice(entity, this.name)});
+    $(".otherSelection", template).click(function(val) {handleReconChoice(entity, this.name)});
     template.insertAfter("#manualReconcileTemplate")
 
     fetchMqlProps(entity);
 }
 
-function renderCandidate(result, mqlProps) {
+function renderCandidate(result, mqlProps, entity) {
     var url = freebase_url + "/view/" + result['id'];
     var tableRow = node("tr", {"class":idToClass(result["id"])});
     
@@ -175,6 +175,7 @@ function renderCandidate(result, mqlProps) {
        {"class":'manualSelection', 
         "name":result.id})
     tableRow.append(node("td",button));
+    button.click(function(val) {entity['/rec_ui/freebase_name'] = result.name; handleReconChoice(entity, result.id)})
     
     node("td",
          node("img",{src:freebase_url + "/api/trans/image_thumb/"+result['id']+"?maxwidth=100&maxheight=100"})
@@ -267,6 +268,7 @@ function fillInMQLProps(entity, mqlResult) {
 
 function handleReconChoice(entity,freebaseId) {
     delete manualQueue[entity["/rec_ui/id"]];
+    $("#manualReconcile" + entity['/rec_ui/id']).remove();
     if (freebaseId != undefined)
         entity.id = freebaseId;
     addColumnRecCases(entity);
