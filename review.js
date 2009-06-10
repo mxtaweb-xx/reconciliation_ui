@@ -1,15 +1,15 @@
 function renderReviews() { 
-    var container = $('.reconciliationsToReview');
-    container.empty();
-    container.hide();
+    var container = $('.reconciliationsToReview').hide().empty();
+    var newTemplate = $(".templates .reviewNewTemplate");
+    var reconciledTemplate = $(".templates .reviewReconciledTemplate");
     $.each(entities, function(idx,entity){ 
         var template;
         if (entity.id === null || entity.id === undefined || entity.id === "")
             return
         if (entity.id === "None")
-            template = $(".templates .reviewNewTemplate").clone();
+            template = newTemplate.clone();
         else
-            template = $(".templates .reviewReconciledTemplate").clone();
+            template = reconciledTemplate.clone();
         
         $(".candidateName",template).html("<a class='internalLink' href='#" + entity['/rec_ui/id'] + "'>" + textValue(entity) + "</a>");
         var freebaseName = null;
