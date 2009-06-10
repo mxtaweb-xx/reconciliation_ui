@@ -147,9 +147,16 @@
               <h3>Upload your data to Freebase:</h3>
               We've found <span class='triple_count'></span> assertions that you can upload.
               <br/>
-              <button onclick='freeqWrite()'>Upload</button>
-              <div class="tripleStatus"></div>
-              <div class="uploadingTriples invisible">Uploading...<img src="spinner.gif"/></div>
+              <div class="uploadLogin">
+                  <a href="http://spreadsheet.rictic.user.dev.freebaseapps.com/login">Login</a> to upload to freebase.  <button onClick='checkLogin()'>Refresh</button>
+              </div>
+              
+              <div class="uploadForm">
+                  <form action="http://spreadsheet.rictic.user.dev.freebaseapps.com/triplewriter" target="_blank" method="POST" accept-charset="utf-8">
+                      <input type="hidden" name="payload" value="" id="payload">
+                      <input type="submit" value="Upload">
+                  </form>
+              </div>
           </div>
       </div>
       
