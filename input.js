@@ -123,12 +123,17 @@ function parseSpreadsheet(spreadsheet) {
     var part = partition(headers, function(header) {return charIn(header,":");});
     complexHeaders = part[0];
     simpleHeaders = part[1];
-        
-    mqlProps = filter(simpleHeaders, function(header) {
-        return  !contains(["/type/object/name","/type/object/type","id","/type/object/id"], header)
-             && header.charAt(0) == "/"
-    });
     
+    mqlProps = filter(headers, function(header) {
+        if (header.charAt(0) !== "/")
+            return false;
+        var invalidList = ["/type/object/name","/type/object/type","/type/object/id",/(^|:)id$/];
+        for (var i = 0; i<invalidList.length; i++){
+            if (header.match(invalidList[i]))
+                return false;
+        }
+        return true;
+    });
     rows = [];
     var rowHeaders  = simpleHeaders.slice();
     var rowMqlProps = mqlProps.slice();
@@ -204,7 +209,7 @@ function fetchMQLPropMetadata(callback) {
         }
     }
     var envelope = {};
-    $.each(mqlProps.concat(complexHeaders), function(i, mqlProp) {
+    $.each(mqlProps, function(i, mqlProp) {
         $.each(mqlProp.split(":"), function(i, simpleProp) {
             envelope[simpleProp.replace(/\//g,'Z')] = {"query": getQuery(simpleProp)};
         })
@@ -219,7 +224,7 @@ function fetchMQLPropMetadata(callback) {
 
 function handleMQLPropMetadata(results) {
     console.assert(results.code == "/api/status/ok", results);    
-    $.each(mqlProps.concat(complexHeaders), function(_,complexProp){
+    $.each(mqlProps, function(_,complexProp){
         var partsSoFar = [];
         $.each(complexProp.split(":"), function(_, mqlProp) {
             var result = results[mqlProp.replace(/\//g,'Z')];
