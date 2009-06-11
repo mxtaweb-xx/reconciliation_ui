@@ -68,6 +68,16 @@ function node(kind) {
     return node;
 }
 
+function arrayDifference(source, toRemove) {
+    source = $.makeArray(source); toRemove = $.makeArray(toRemove);
+    var result = [];
+    $.each(source, function(_,val){
+        if (!contains(toRemove,val))
+            result.push(val);
+    })
+    return result;
+}
+
 //Uniquely maps MQL ids to valid CSS class names
 function idToClass(idName) {
     return idName.replace(/\//g,"_");

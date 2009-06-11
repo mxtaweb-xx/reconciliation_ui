@@ -92,21 +92,37 @@ function getTriples(rows) {
     function isValidID(id) {
         if ($.isArray(id))
             id = id[0];
-        return id !== undefined && id !== "None" && $.trim(id) !== "";
+        return id !== undefined && $.trim(id) !== "";
     }
-    $.each(rows, function(_,subject) {
-        if (!isValidID(subject.id)) {
-//             console.log("subject blank - " + subject['/rec_ui/id']);
+    function getID(entity) {
+        if (entity.id === "None")
+            return "$entity" + entity['/rec_ui/id'];
+        return entity.id;
+    }
+    function encodeValue(value) {
+        return '"' + value.replace("\\","\\\\").replace("\n","\\n").replace("\t","\\t").replace('"','\\"') + '"';
+    }
+    $.each(entities, function(_,subject) {
+        if (!isValidID(subject.id))
             return;
-        }
+        $.each($.makeArray(subject['/type/object/type']), function(_, type){
+            triples.push(getID(subject) + " /type/object/type " + type);
+        });
+        if (subject.id === "None" && subject["/type/object/name"])
+            triples.push(getID(subject) + " /type/object/name " + encodeValue(subject["/type/object/name"]));
         $.each(subject['/rec_ui/mql_props'], function(_, predicate) {
             $.each($.makeArray(subject[predicate]), function(_, object) {
-                if  (isValueType(mqlMetadata[predicate].expected_type) || !isValidID(object.id)) {
-//                    console.log("object blank or value - " + predicate + " " + subject['/rec_ui/id']);
+                if  (!isValidID(object.id)) {
+//                    console.log("object blank" + predicate + " " + subject['/rec_ui/id']);
                    return;
                 }
-
-                triples.push(subject.id + " " + predicate + " " + object.id);
+                var metadata = mqlMetadata[predicate];
+                if (metadata && isValueType(metadata.expected_type)){
+                    triples.push(getID(subect) + " " + predicate + " " + envodeValue(object));
+                }
+                else {
+                    triples.push(getID(subject) + " " + predicate + " " + getID(object));
+                }
             })
         });
     });
