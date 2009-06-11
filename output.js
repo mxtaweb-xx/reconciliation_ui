@@ -82,11 +82,11 @@ function renderSpreadsheet() {
         lines = lines.concat(encodeRow(rows[i]));
 
     $("#outputSpreadSheet")[0].value = lines.join("\n");
-    triples = getTriples(rows);
+    var triples = getTriples(rows);
     $(".triple_count").html(triples.length)
+    $('#payload')[0].value = triples.join("\n")
 }
 
-var triples;
 function getTriples(rows) {
     var triples = [];
     function isValidID(id) {
@@ -138,7 +138,6 @@ function checkLogin() {
             console.error(data);
         else if (data.status.code === 200){
             $(".uploadLogin").hide();
-            populateUploadForm();
             $(".uploadForm").show();
         }
         else if (data.status.code === 401){
@@ -148,8 +147,4 @@ function checkLogin() {
         else
             console.error(data);
     })
-}
-
-function populateUploadForm() {
-    $('#payload')[0].value = triples.join("\n")
 }

@@ -159,7 +159,8 @@ function renderReconChoices(entity) {
     $(".find_topic", template)
         .freebaseSuggest()
         .bind("fb-select", function(e, data) { 
-          handleReconChoice(entity["/rec_ui/id"], data.id);
+          entity['/rec_ui/freebase_name'] = $.makeArray(data.name);
+          handleReconChoice(entity, data.id);
         });
     $(".otherSelection", template).click(function(val) {handleReconChoice(entity, this.name)});
     template.insertAfter("#manualReconcileTemplate")
