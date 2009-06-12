@@ -482,7 +482,7 @@ var sampleData =
 "Killer Condom\t/film/film\tMartin Walz\n" +
 "Led Zeppelin: The Song Remains the Same\t/film/film\tJoe Massot\n" +
 "The Adventures of Pinocchio\t/film/film\tSteve Barron\n" +
-"Boiling Point\t/film/film\tTakeshi \"Beat\" Kitano\n" +
+"Boiling Point\t/film/film\t\"Takeshi \"\"Beat\"\" Kitano\"\n" +
 "Everest: IMAX\t/film/film\tGreg Mac Gillivray\n" +
 "Top of the World\t/film/film\tSidney J. Furie\n" +
 "Trippin\'\t/film/film\tDavid Raynr\n" +
@@ -977,10 +977,10 @@ var sampleData =
 "Citizen Kane\t/film/film\tOrson Welles\n" +
 "The Filth and the Fury: A Sex Pistols Film\t/film/film\tJulien Temple\n" +
 "Dark Passage\t/film/film\tDelmer Daves\n" +
-"Fireworks\t/film/film\tTakeshi \"Beat\" Kitano\n" +
+"Fireworks\t/film/film\t\"Takeshi \"\"Beat\"\" Kitano\"\n" +
 "Safe\t/film/film\tTodd Haynes\n" +
 "Chungking Express\t/film/film\tKar Wai Wong\n" +
-"Sonatine\t/film/film\tTakeshi \"Beat\" Kitano\n" +
+"Sonatine\t/film/film\t\"Takeshi \"\"Beat\"\" Kitano\"\n" +
 "Spectres of the Spectrum\t/film/film\tCraig Baldwin\n" +
 "The Duke\t/film/film\tPhilip Spink\n" +
 "Contempt\t/film/film\tJean-Luc Godard\n" +

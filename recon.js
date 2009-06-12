@@ -27,204 +27,16 @@
 // ========================================================================
 
 
-var totalRecords = 0;
-
-var manualQueue = [];
+/*
+**  Automatic reconciliation
+*/
+var manualQueue = {};
 var automaticQueue = [];
-var freebase_url = "http://www.freebase.com/"
-var reconciliation_url = "";
-var id_column = "id";
-var headers;
-var rows;
-var mqlProps;
-
-function node(kind) {
-    var node = $(document.createElement(arguments[0]));
-    var options = arguments[arguments.length-1]
-    var len = arguments.length - 1;
-    if (typeof options == "object" && options.insertAfter == undefined){
-        if (options["onclick"] != undefined) {
-            node.click(options["onclick"]);
-            delete options["onclick"];
-        }
-        node.attr(options);
-    }
-    else
-        len = arguments.length;
-    
-    for (var i = 1; i < len; i++)
-        node.append(arguments[i]);
-    return node;
-}
-
-function setReconciliationURL() {
-    if (window.location.href.substring(0,4) == "file") {
-        reconciliation_url = "http://www.mqlx.com/reconciliation/";
-        return;
-    }
-    var url_parts = window.location.href.split("/");
-    url_parts.pop();
-    reconciliation_url = url_parts.join("/") + "/";
-}
-
-function parseSpreadsheet(spreadsheet) {
-    var position = 0;
-    
-
-    function parseLine() {
-        var fields = [];
-        var inQuotes = false;
-        var field = "";
-        function nextField() {
-            fields.push(field);
-            field = "";
-            position++;
-        }
-        function isEndOfLine() {
-            var c = spreadsheet.charAt(position);
-            if (c == "\r" && spreadsheet.charAt(position+1) == "\n"){
-                position++; return true;
-            }
-            return c == "" || spreadsheet.charAt(position) == "\n" ;
-        }
-        //If this gives me any more trouble, I'm just doing a state machine
-        while(true) {
-            var c = spreadsheet.charAt(position);
-            if (inQuotes){
-                //quotes are quoted with two adjacent quotes
-                if (c == '"' && spreadsheet.charAt(position+1) == '"'){
-                    field += c;
-                    position += 2;
-                    continue;
-                }
-                //end of the quoted field
-                if (c == '"'){
-                    inQuotes = false;
-                    position++;
-                    if (isEndOfLine()){
-                        fields.push(field);
-                        position++;
-                        return fields;
-                    }
-                    nextField();
-                    continue;
-                }
-                
-                //just a character in the quoted field
-                field += c;
-                position++;
-                continue;
-            }
-            
-            //the field is quoted
-            if (spreadsheet.charAt(position) == '"'){
-                inQuotes = true;
-                position++;
-                continue;
-            }
-            
-            //end of the field
-            if (c == "\t"){
-                nextField();
-                continue;
-            }
-            
-            //end of the line
-            if (isEndOfLine()){
-                fields.push(field);
-                position += 1;
-                return fields;
-            }
-            
-            //just a character in the field
-            field += c;
-            position += 1;
-        }
-    }
-    
-    headers = parseLine();
-    
-    //get, or make the id column
-    if (!contains(headers, "id") && !contains(headers, "/type/object/id"))
-        headers.push(id_column);
-    else if (contains(headers, "/type/object/id"))
-        id_column = "/type/object/id"
-    
-    mqlProps = [];
-    for(var i =0; i < headers.length; i++)
-        if (!contains(["/type/object/name","/type/object/type","id","/type/object/id"], headers[i]) && headers[i][0] == "/")
-            mqlProps.push(headers[i]);
-
-    rows = [];
-    var idx = 0;
-    while(spreadsheet.charAt(position) != ""){
-        var rowArray = parseLine();
-        var row = {};
-        for (var i=0; i < headers.length; i++)
-            if (rowArray[i] != "")
-                row[headers[i]] = rowArray[i];
-        row.internalId = idx++;
-        rows.push(row);
-    }
-}
-
-function spreadsheetParsed() {
-    function isUnreconciled(row) {
-        return contains([undefined,null,"indeterminate",""], row[id_column]);
-    }
-    totalRecords = rows.length;
-    automaticQueue = $.grep(rows,isUnreconciled);
-    
-    var tableHeader = $(".reconciliationCandidates table thead");
-    var columnHeaders = ["","Image","Names","Types"].concat(mqlProps).concat(["Score"]);
-    for (var i = 0; i < columnHeaders.length; i++)
-        tableHeader.append(node("th",columnHeaders[i]));
-}
-
-function renderSpreadsheet() {
-    function encodeLine(arr) {
-        var values = [];
-        for(var i = 0; i < headers.length; i++){
-            var val = arr[i];
-            if (typeof val == "undefined") {
-                values.push("");
-                continue;
-            }
-            val = val.replace(/"/g, '""');
-            values.push('"' + val + '"');
-        }
-        return values.join("\t");
-    }
-    function encodeRow(row) {
-        var lines = [[]];
-        for (var i = 0; i < headers.length; i++){
-            var val = row[headers[i]];
-            if (typeof val == "string")
-                lines[0][i] = val;
-            else if (typeof val == "undefined")
-                lines[0][i] = "";
-            else {
-                //val is an array
-                for (var j = 0; j < val.length; j++) {
-                    if (lines[j] == undefined) lines[j] = [];
-                    lines[j][i] = val[j];
-                }
-            }
-        }
-        return $.map(lines,encodeLine);
-    }
-    var lines = [];
-    lines.push(encodeLine(headers));
-    for (var i = 0; i < rows.length; i++)
-        lines = lines.concat(encodeRow(rows[i]));
-
-    $("#outputSpreadSheet")[0].value = lines.join("\n");
-}
-
 
 function beginAutoReconciliation() {
     $(".nowReconciling").show();
     $(".notReconciling").hide();
+    $("#gettingInput").remove();
     autoReconcile();
 }
 
@@ -242,131 +54,154 @@ function autoReconcile() {
     getCandidates(automaticQueue[0], autoReconcileResults);
 }
 
-function autoReconcileResults(row) {
+function getCandidates(entity, callback) {
+    var query = {}
+    var headers = entity["/rec_ui/headers"];
+    for (var i = 0; i < headers.length; i++) {
+        var prop = headers[i];
+        var value = entity[prop];
+        
+        function constructQueryPart(value) {
+            if (value.id != undefined && value.id != "" && value.id != "None")
+                return {"id":value.id, "name":value["/type/object/name"]}
+            return value["/type/object/name"] || value;
+        }
+        if (value != undefined && value != null && value != "" && prop != "id") {
+            if(query[prop] == undefined)
+                query[prop] = [];
+            query[prop] = query[prop].concat($.map($.makeArray(value), constructQueryPart));
+        }
+    }
+    function handler(results) {
+        entity.reconResults = results; 
+        callback(entity);
+    }
+    $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:4}, handler);
+}
+
+function autoReconcileResults(entity) {
     automaticQueue.shift();
     // no results, set to None:
-    if(row.reconResults.length == 0)
-        row[id_column] = "None";
+    if(entity.reconResults.length == 0) {
+        entity["id"] = "None";
+        console.warn("No results:");
+        console.warn(entity);
+        addColumnRecCases(entity);
+    }        
     // match found:
-    else if(row.reconResults[0]["match"] == true) {
-        row[id_column] = row.reconResults[0]["id"];
+    else if(entity.reconResults[0]["match"] == true) {
+        entity["id"] = entity.reconResults[0].id;
+        entity["/rec_ui/freebase_name"] = entity.reconResults[0].name;
+        addColumnRecCases(entity);
     }
     else {
-        manualQueue.push(row);
-        if (manualQueue.length == 1)
+        var wasEmpty = isObjectEmpty(manualQueue);
+        manualQueue[entity["/rec_ui/id"]] = entity;
+        if (wasEmpty)
             manualReconcile();
     }
     autoReconcile();
 }
 
-function getCandidates(row, callback) {
-    var query = {}
-    for (var i = 0; i < headers.length - 1; i++) {
-        var prop = headers[i];
-        var value = row[prop];
-        if (value != undefined && value != null && value != "") {
-            if(query[prop] == undefined)
-                query[prop] = [];
-            query[prop] = query[prop].concat($.makeArray(value));
-        }
-    }
-    function handler(results) {
-        row.reconResults = results; 
-        callback(row);
-    }
-    $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:4}, handler);
-}
+/*
+** Manual Reconciliation
+*/
 
 function manualReconcile() {
-    if(manualQueue[0] != undefined) {
-        $(".manualQueueEmpty").hide();
-        $(".manualReconciliation").show();
-        displayReconChoices(manualQueue[0]);
-        renderReconChoices(manualQueue[1]); //render-ahead the next one
+    if ($(".manualReconChoices:visible").length === 0) {
+        var val = getFirstValue(manualQueue);
+        if(val != undefined) {
+            $.historyLoad(val["/rec_ui/id"])
+            renderReconChoices(getSecondValue(manualQueue)); //render-ahead the next one
+        }
+        else{
+            $(".manualQueueEmpty").show();
+            $(".manualReconciliation").hide();
+        }
     }
-    else{
-        $(".manualQueueEmpty").show();
-        $(".manualReconciliation").hide();
-        $(".manualReconChoices:visible").remove();
-    }
 }
 
-function contains(array, value) {
-    for(var i = 0; i < array.length; i++)
-        if (array[i] == value)
-            return true;
-    return false;
-}
-
-function idToClass(idName) {
-    return idName.replace(/\//g,"_");
-}
-
-function displayReconChoices(row) {
-    if (! $("#manualReconcile" + row.internalId)[0])
-        renderReconChoices(row);
+function displayReconChoices(entityID) {
+    var entity = entities[entityID];
+    if (entity === undefined) return;
+    $(".manualQueueEmpty").hide();
+    $(".manualReconciliation").show();
+    if (! $("#manualReconcile" + entityID)[0])
+        renderReconChoices(entity);
     $(".manualReconChoices:visible").remove();
-    $("#manualReconcile" + row.internalId).show();
+    $("#manualReconcile" + entityID).show();
 }
 
-function renderReconChoices(row) {
-    if (row == undefined) return;
+function renderReconChoices(entity) {
+    if (entity == undefined) return;
     var template = $("#manualReconcileTemplate").clone();
-    template[0].id = "manualReconcile" + row.internalId;
+    template[0].id = "manualReconcile" + entity['/rec_ui/id'];
+    var headers = entity["/rec_ui/headers"];
+    var mqlProps = entity["/rec_ui/mql_props"];
+    
     var currentRecord = $(".recordVals",template);
     for(var i = 0; i < headers.length; i++) {
         currentRecord.append(node("label", headers[i] + ":", {"for":idToClass(headers[i])}));
-        currentRecord.append(node("div",row[headers[i]]));
+        currentRecord.append(node("div",displayValue(entity[headers[i]])));
     }
     
+    var tableHeader = $(".reconciliationCandidates table thead", template);
+    var columnHeaders = ["","Image","Names","Types"].concat(mqlProps).concat(["Score"]);
+    for (var i = 0; i < columnHeaders.length; i++)
+        tableHeader.append(node("th",columnHeaders[i]));
+    
     var tableBody = $(".reconciliationCandidates table tbody", template);
-    for (var i = 0; i < row.reconResults.length; i++)
-        tableBody.append(renderCandidate(row.reconResults[i]));
+    for (var i = 0; i < entity.reconResults.length; i++)
+        tableBody.append(renderCandidate(entity.reconResults[i], mqlProps, entity));
 
     $('.reconciliationCandidates table tbody tr:odd', template).addClass('odd');
     $('.reconciliationCandidates table tbody tr:even', template).addClass('even');
     $(".find_topic", template)
         .freebaseSuggest()
         .bind("fb-select", function(e, data) { 
-          handleReconChoice(data.id);
+          entity['/rec_ui/freebase_name'] = $.makeArray(data.name);
+          handleReconChoice(entity, data.id);
         });
-    
+    $(".otherSelection", template).click(function(val) {handleReconChoice(entity, this.name)});
     template.insertAfter("#manualReconcileTemplate")
 
-    fetchMqlProps(row);
+    fetchMqlProps(entity);
 }
 
-function renderCandidate(result) {
+function renderCandidate(result, mqlProps, entity) {
     var url = freebase_url + "/view/" + result['id'];
-    var row = node("tr", {"class":idToClass(result["id"])});
+    var tableRow = node("tr", {"class":idToClass(result["id"])});
     
     var button = node("button", "Select", 
        {"class":'manualSelection', 
-        "onclick":function() {handleReconChoice(result["id"])}})
-    row.append(node("td",button));
+        "name":result.id})
+    tableRow.append(node("td",button));
+    button.click(function(val) {entity['/rec_ui/freebase_name'] = result.name; handleReconChoice(entity, result.id)})
     
     node("td",
          node("img",{src:freebase_url + "/api/trans/image_thumb/"+result['id']+"?maxwidth=100&maxheight=100"})
-    ).appendTo(row);
+    ).appendTo(tableRow);
     
-    var names = node("td").appendTo(row);
-    for(var j = 0; j < result["name"].length; j++)
-        names.append(node("a",result["name"][j], {target:"_blank", href:url}));
+    var names = node("td").appendTo(tableRow);
+    for(var j = 0; j < result["name"].length; j++) {
+        names.append(node("a",result["name"][j], {target:"_blank", href:url})).append(node("br"));
+    }
     
-    row.append(node("td",result["type"].join("<br/>")));
+    tableRow.append(node("td",result["type"].join("<br/>")));
     
     for(var j = 0; j < mqlProps.length; j++)
-        row.append(
+        tableRow.append(
             node("td", node("img",{src:"spinner.gif"}),
                  {"class":"replaceme "+idToClass(mqlProps[j])})
         );
-    row.append(node("td",result["score"]));
-    return row;
+    tableRow.append(node("td",result["score"]));
+    return tableRow;
 }
 
-function fetchMqlProps(row) {
-    for (var i = 0; i < row.reconResults.length; i++) {
-        var result = row.reconResults[i];
+function fetchMqlProps(entity) {
+    var mqlProps = entity["/rec_ui/mql_props"];
+    for (var i = 0; i < entity.reconResults.length; i++) {
+        var result = entity.reconResults[i];
         var query = {"id":result["id"],
                      "/type/reflect/any_master" : [
                        {
@@ -384,101 +219,60 @@ function fetchMqlProps(row) {
                          "value" : null,
                          "optional" : true
                        }
-                     ]
+                     ],
+                     "/type/reflect/any_reverse" : [
+                        {
+                          "link" : {"master_property":{"reverse_property|=":mqlProps,
+                                    "reverse_property":null}},
+                          "id" : null,
+                          "name" : null,
+                          "optional" : true
+                        }
+                      ],
                     };
         var envelope = {query:query};
         function handler(results) {
-            
+            fillInMQLProps(entity, results);
         }
-        $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {query:JSON.stringify(envelope)}, fillInMQLProps);
+        $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {query:JSON.stringify(envelope)}, handler);
     }
 }
 
-function fillInMQLProps(mqlResult) {
+function fillInMQLProps(entity, mqlResult) {
+    var context = $("#manualReconcile" + entity["/rec_ui/id"]);
     if (mqlResult["code"] != "/api/status/ok" || mqlResult["result"] == null) {
         //don't show annoying loading symbols indefinitely if there's an error
-        $(".replaceme").html("");
+        $(".replaceme",context).empty();
+        console.error(mqlResult);
         return;
     }
 
-    var result = mqlResult["result"];
-    var selector = "tr." + idToClass(result["id"]);
-    var row = $(selector);
-    $(selector + " .replaceme").html("");
+    var result = mqlResult.result;
+    var entity = $("tr." + idToClass(result.id),context);
+    $(".replaceme", entity).empty();
     
     var props = result["/type/reflect/any_master"].concat(
-                result["/type/reflect/any_value"]);
+                result["/type/reflect/any_value"]).concat(
+                result["/type/reflect/any_reverse"]);
     for (var i = 0; i < props.length; i++) {
         var prop = props[i];
-        var cell = row.children("td." + idToClass(prop["link"]));
-        if (prop["value"] != undefined)
-            cell.html(cell.html() + prop["value"] + " <br/>");
+        var link = prop.link;
+        if (link.master_property != undefined)
+            link = link.master_property.reverse_property;
+        var cell = $("td." + idToClass(link), entity);
+        if (prop.value != undefined)
+            cell.html(cell.html() + prop.value + " <br/>");
         else
-            cell.html(cell.html() + "<a target='_blank' href='"+freebase_url+"/view"+prop["id"]+"'>" + prop["name"] + "</a><br/>")
+            cell.html(cell.html() + freebaseLink(prop.id, prop.name) + "<br/>")
     }
 }
 
-function handleReconChoice(id) {
-    if (id != undefined)
-        manualQueue[0][id_column] = id;
-    manualQueue.shift();
+function handleReconChoice(entity,freebaseId) {
+    delete manualQueue[entity["/rec_ui/id"]];
+    $("#manualReconcile" + entity['/rec_ui/id']).remove();
+    if (freebaseId != undefined)
+        entity.id = freebaseId;
+    addColumnRecCases(entity);
     updateUnreconciledCount();
     manualReconcile();
-}
-
-
-function updateUnreconciledCount() {
-    var pctProgress = (((totalRecords - automaticQueue.length) / totalRecords) * 100);
-    $("#progressbar").progressbar("value", pctProgress);
-    $("#progressbar label").html(pctProgress.toFixed(1) + "%")
-    $(".manual_count").html("("+manualQueue.length+")");
-}
-
-
-function combineRows() {
-    var rowIndex = undefined;
-    while(rowIndex = getAmbiguousRowIndex(rowIndex)) {
-        var mergeRow = rows[rowIndex];
-        var i;
-        for (i = rowIndex+1; i < rows.length && rows[i][headers[0]] == undefined;i++) {
-            for (var j = 0; j<headers.length; j++) {
-                var col = headers[j];
-                if (rows[i][col] == undefined)
-                    continue;
-                if (typeof(mergeRow[col]) == "string")
-                    mergeRow[col] = [mergeRow[col], rows[i][col]];
-                else
-                    mergeRow[col].push(rows[i][col]);
-            }
-        }
-        //remove the rows that we've combined in
-        rows.splice(rowIndex+1, (i - rowIndex) - 1);
-    }
-}
-
-function getAmbiguousRowIndex(from) {
-    /* 
-    Starting at `from+1`, look for the first row that has an entry in the
-    first column which is followed by a row without an entry in the first
-    column. 
-    */
-    if (from == undefined)
-        from = -1;
-    from++;
-
-    var startingRowIdx;
-    for(var i = from; i < rows.length; i++) {
-        if (rows[i][headers[0]] != "" && rows[i][headers[0]] != undefined)
-            startingRowIdx = i;
-        else if (startingRowIdx != undefined)
-            return startingRowIdx;
-    }
-    return undefined;
-}
-
-function clone(obj) {
-    var copy = {};
-    for (var i in obj)
-        copy[i] = obj[i];
-    return copy;
 }

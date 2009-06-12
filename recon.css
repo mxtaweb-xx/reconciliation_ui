@@ -16,9 +16,7 @@ table {
 }
 
 .container {
-	width: 800px;
-	margin: 30px auto;
-	padding: 0;
+	padding: 30px;
 }
 
 
@@ -80,7 +78,7 @@ a:hover {
 	text-decoration: underline;
 }
 
-ul {
+#tabs {
 	color: #B0BED9;
 }
 
@@ -109,6 +107,11 @@ table.currentRecord {
     width: 50%;
     top:1px;
     right:1px;
+}
+#progresscontainer label.kind {
+    float: left;
+    margin-top:5px;
+    margin-left:3px;
 }
 #progressbar label {
     position: absolute;
@@ -158,4 +161,10 @@ button.skipButton {
 
 label.findItem {
     margin-left: 10px;
+}
+
+#reviewScreen .identicalMatch {
+    opacity:0.5;  
+    filter:alpha(opacity=50);  
+    -moz-opacity:0.5;
 }
