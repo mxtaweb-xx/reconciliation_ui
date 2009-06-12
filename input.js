@@ -83,6 +83,13 @@ function parseSpreadsheet(spreadsheet) {
                     continue;
                 }
                 
+                if (c == ""){
+                    console.error("unexpected end of input, no closing double-quote marks found");
+                    fields.push(field);
+                    position+=1;
+                    return fields;
+                }
+                
                 //just a character in the quoted field
                 field += c;
                 position++;
