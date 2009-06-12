@@ -200,7 +200,10 @@ function spreadsheetParsed(callback) {
     }
     totalRecords = rows.length;
     automaticQueue = $.grep(rows,isUnreconciled);
-    fetchMQLPropMetadata(callback);
+    if (mqlProps.length === 0)
+        callback();
+    else
+        fetchMQLPropMetadata(callback);
 }
 
 function fetchMQLPropMetadata(callback) {

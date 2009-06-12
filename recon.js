@@ -200,6 +200,7 @@ function renderCandidate(result, mqlProps, entity) {
 
 function fetchMqlProps(entity) {
     var mqlProps = entity["/rec_ui/mql_props"];
+    if (mqlProps.length === 0) return;
     for (var i = 0; i < entity.reconResults.length; i++) {
         var result = entity.reconResults[i];
         var query = {"id":result["id"],
