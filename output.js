@@ -108,8 +108,13 @@ function getTriples(rows) {
         $.each($.makeArray(subject['/type/object/type']), function(_, type){
             triples.push(getID(subject) + " /type/object/type " + type);
         });
-        if (subject.id === "None" && subject["/type/object/name"])
-            triples.push(getID(subject) + " /type/object/name " + encodeValue(subject["/type/object/name"]));
+        if (subject.id === "None"){
+            $.each($.makeArray(subject["/type/object/name"]), function(_, name) {
+                if (name)
+                    triples.push(getID(subject) + " /type/object/name " + encodeValue(name));
+            });
+        }
+
         $.each(subject['/rec_ui/mql_props'], function(_, predicate) {
             $.each($.makeArray(subject[predicate]), function(_, object) {
                 if  (!isValidID(object.id)) {
