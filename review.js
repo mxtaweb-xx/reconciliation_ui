@@ -20,10 +20,10 @@ function renderReviews() {
             })
             freebaseName = freebaseName || entity['/rec_ui/freebase_name'][0];
         }
-        freebaseName = freebaseName || entity.id;
+        freebaseName = "" + (freebaseName || entity.id);
         
         $(".freebaseName", template).html("<a href='"+freebase_url+"/view/"+entity.id+"'>"+freebaseName+"</a>");
-        if (textValue(entity).toLowerCase() === freebaseName.toLowerCase())
+        if (freebaseName && textValue(entity).toLowerCase() === freebaseName.toLowerCase())
             $(".freebaseName", template).addClass("identicalMatch");
             
         $(".internalLink", template).click(function(val) {

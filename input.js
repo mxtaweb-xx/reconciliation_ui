@@ -198,12 +198,17 @@ function spreadsheetParsed(callback) {
     function isUnreconciled(entity) {
         return contains([undefined,null,"indeterminate",""], entity["id"]);
     }
+    function new_callback() {
+        objectifyRows();
+        $(".initialLoadingMessage").hide();
+        callback();
+    }
     totalRecords = rows.length;
     automaticQueue = $.grep(rows,isUnreconciled);
     if (mqlProps.length === 0)
-        callback();
+        new_callback();
     else
-        fetchMQLPropMetadata(callback);
+        fetchMQLPropMetadata(new_callback);
 }
 
 function fetchMQLPropMetadata(callback) {
@@ -252,8 +257,7 @@ function handleMQLPropMetadata(results) {
                 mqlMetadata[result.expected_type] = {reverse_property: result.id};
         });
     })
-    objectifyRows();
-    $(".initialLoadingMessage").hide();
+
 }
 
 function objectifyRows() {
@@ -347,7 +351,7 @@ function objectifyRows() {
             closed[obj] = true;
             for (var key in obj){
                 obj[key] = cleanup(obj[key], closed);
-                if (obj[key] == undefined || ($.isArray(obj[key]) && obj[key].length == 0))
+                if (obj[key] == undefined || ($.isArray(obj[key]) && obj[key].length == 0) && key != "/rec_ui/mql_props")
                     delete obj[key];
             }
             return obj
