@@ -39,12 +39,14 @@ function renderSpreadsheet() {
         var values = [];
         for(var i = 0; i < headers.length; i++){
             var val = arr[i];
-            if (typeof val == "undefined") {
+            if (typeof val == "undefined")
                 values.push("");
-                continue;
+            else if (!val.match(/(\t|\"|\n)/))
+                values.push(arr[i])
+            else {
+                val = val.replace(/"/g, '""');
+                values.push('"' + val + '"');
             }
-            val = val.replace(/"/g, '""');
-            values.push('"' + val + '"');
         }
         return values.join("\t");
     }
