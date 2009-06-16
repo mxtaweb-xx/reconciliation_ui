@@ -90,7 +90,8 @@ function autoReconcileResults(entity) {
     }        
     // match found:
     else if(entity.reconResults[0]["match"] == true) {
-        entity["id"] = entity.reconResults[0].id;
+        entity.id = entity.reconResults[0].id;
+        canonicalizeFreebaseId(entity);
         entity["/rec_ui/freebase_name"] = entity.reconResults[0].name;
         addColumnRecCases(entity);
     }
@@ -271,9 +272,19 @@ function fillInMQLProps(entity, mqlResult) {
 function handleReconChoice(entity,freebaseId) {
     delete manualQueue[entity["/rec_ui/id"]];
     $("#manualReconcile" + entity['/rec_ui/id']).remove();
-    if (freebaseId != undefined)
+    if (freebaseId != undefined){
         entity.id = freebaseId;
+        canonicalizeFreebaseId(entity);
+    }
     addColumnRecCases(entity);
     updateUnreconciledCount();
     manualReconcile();
+}
+
+
+function canonicalizeFreebaseId(entity) {
+    var envelope = {query:{"myId:id":entity.id, "id":null}}
+    $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {query:JSON.stringify(envelope)}, function(results){
+        entity.id = results.result.id
+    });
 }
