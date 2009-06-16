@@ -317,9 +317,9 @@ function objectifyRows() {
                 });
                 var lastPart = parts[parts.length-1];
                 var meta = mqlMetadata[lastPart];
-                if (meta === undefined)
+                if (meta === undefined && lastPart !== "id")
                     return; //if we don't know what it is, leave it as it is
-                if (isValueType(meta.expected_type))
+                if (lastPart === "id" || (meta && isValueType(meta.expected_type)))
                     slot[lastPart] = value;
                 else
                     slot[lastPart] = newEntity({"/type/object/type":meta.expected_type.id,
