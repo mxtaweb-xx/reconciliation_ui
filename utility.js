@@ -196,6 +196,26 @@ function partition(array, predicate) {
     return [good,bad];
 }
 
+function all(array, predicate) {
+    for (var i = 0; i < array.length; i++)
+        if (!predicate(array[i]))
+            return false;
+    return true;
+}
+
+function any(array, predicate) {
+    for (var i = 0; i < array.length; i++)
+        if (predicate(array[i]))
+            return true;
+    return false;
+}
+
+function none(array, predicate) {
+    return !any(array,predicate);
+}
+
+function identity(value) {return value;}
+
 
 /*
 ** create debugging tools if they're not available
