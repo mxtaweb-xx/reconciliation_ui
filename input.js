@@ -250,11 +250,11 @@ function handleMQLPropMetadata(results) {
             }
             result = result.result;
             mqlMetadata[result['id']] = result;
-            if (!isValueType(result.expected_type) && !contains(headers,result.id + ":id" ))
-//                 insertAfter(headers, result.id, result.id + ":id");
-                headers.push(partsSoFar.join(":") + ":id");
-            if (mqlMetadata[result.expected_type] == undefined)
-                mqlMetadata[result.expected_type] = {reverse_property: result.id};
+            var idColumn = partsSoFar.concat("id").join(":");
+            if (!isValueType(result.expected_type) && !contains(headers,idColumn))
+                headers.push(idColumn);
+            if (result.expected_type && mqlMetadata[result.expected_type.id] == undefined)
+                mqlMetadata[result.expected_type.id] = {reverse_property: result.id};
         });
     })
 
@@ -280,10 +280,7 @@ function objectifyRows() {
             var meta = mqlMetadata[prop];
             if (meta == undefined || isValueType(meta.expected_type))
                 continue;
-            if ($.isArray(row[prop]))
-                row[prop] = $.map(row[prop], objectifyRowProperty)
-            else
-                row[prop] = objectifyRowProperty(row[prop]);
+            row[prop] = $.map(row[prop], objectifyRowProperty)
         }
         $.each(complexHeaders, function(_,complexHeader) {
             var valueArray = row[complexHeader];
@@ -300,16 +297,11 @@ function objectifyRows() {
             $.each(valueArray, function(i,value) {
                 if (value === undefined)
                     return; //read as continue
-                var cvt = cvtEntity(mqlMetadata[firstPart], row);
-                if (firstPart in row){
-                    if (row[firstPart][i] === undefined)
-                        row[firstPart][i] = cvt;
-                    else
-                        cvt = row[firstPart][i];
-                }
-                else
-                    row[firstPart] = [cvt];
-                slot = cvt;
+                if (!(firstPart in row))
+                    row[firstPart] = [];
+                if (row[firstPart][i] === undefined)
+                    row[firstPart][i] = cvtEntity(mqlMetadata[firstPart], row);;
+                slot = row[firstPart][i];
                 $.each(parts.slice(1,parts.length-1), function(_,part) {
                     if (!part in slot)
                         slot[part] = cvtEntity(mqlMetadata[part], slot);
@@ -319,12 +311,11 @@ function objectifyRows() {
                 var meta = mqlMetadata[lastPart];
                 if (meta === undefined && lastPart !== "id")
                     return; //if we don't know what it is, leave it as it is
-                if (lastPart === "id" || (meta && isValueType(meta.expected_type)))
+                if (lastPart === "id" || isValueType(meta.expected_type))
                     slot[lastPart] = value;
                 else
                     slot[lastPart] = newEntity({"/type/object/type":meta.expected_type.id,
                                                 "/type/object/name":value})
-                slot[parts[parts.length-1]] = value;
             });
             delete row[complexHeader];
         });
