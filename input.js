@@ -345,8 +345,6 @@ function objectifyRows() {
             for (var key in obj){
                 if (key.match(/^\/rec_ui\//)) continue;
                 obj[key] = cleanup(obj[key], closed);
-                if (obj[key] == undefined || ($.isArray(obj[key]) && obj[key].length == 0))
-                    delete obj[key];
             }
             return obj
         }

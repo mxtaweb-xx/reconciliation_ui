@@ -204,10 +204,11 @@ function fetchMqlProps(entity) {
     if (mqlProps.length === 0) return;
     for (var i = 0; i < entity.reconResults.length; i++) {
         var result = entity.reconResults[i];
+        var simpleProps = $.grep(mqlProps, function(prop){return !prop.match(":")})
         var query = {"id":result["id"],
                      "/type/reflect/any_master" : [
                        {
-                         "link|=" : mqlProps,
+                         "link|=" : simpleProps,
                          "link" : null,
                          "id" : null,
                          "name" : null,
@@ -216,7 +217,7 @@ function fetchMqlProps(entity) {
                      ],
                      "/type/reflect/any_value" : [
                        {
-                         "link|=" : mqlProps,
+                         "link|=" : simpleProps,
                          "link" : null,
                          "value" : null,
                          "optional" : true
@@ -224,7 +225,7 @@ function fetchMqlProps(entity) {
                      ],
                      "/type/reflect/any_reverse" : [
                         {
-                          "link" : {"master_property":{"reverse_property|=":mqlProps,
+                          "link" : {"master_property":{"reverse_property|=":simpleProps,
                                     "reverse_property":null}},
                           "id" : null,
                           "name" : null,
