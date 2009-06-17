@@ -285,6 +285,7 @@ function handleReconChoice(entity,freebaseId) {
 function canonicalizeFreebaseId(entity) {
     var envelope = {query:{"myId:id":entity.id, "id":null}}
     $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {query:JSON.stringify(envelope)}, function(results){
-        entity.id = results.result.id
+        if (results && results.result && results.result.id)
+            entity.id = results.result.id
     });
 }

@@ -196,15 +196,17 @@ function getAmbiguousRowIndex(from) {
 
 function spreadsheetParsed(callback) {
     function isUnreconciled(entity) {
-        return contains([undefined,null,"indeterminate",""], entity["id"]);
+        if (entity["/rec_ui/is_cvt"])
+            return false;
+        return contains([undefined,null,"indeterminate",""], entity.id);
     }
     function new_callback() {
         objectifyRows();
+        totalRecords = rows.length;
+        automaticQueue = $.grep(rows,isUnreconciled);
         $(".initialLoadingMessage").hide();
         callback();
     }
-    totalRecords = rows.length;
-    automaticQueue = $.grep(rows,isUnreconciled);
     if (mqlProps.length === 0)
         new_callback();
     else
@@ -341,8 +343,9 @@ function objectifyRows() {
             }
             closed[obj] = true;
             for (var key in obj){
+                if (key.match(/^\/rec_ui\//)) continue;
                 obj[key] = cleanup(obj[key], closed);
-                if (obj[key] == undefined || ($.isArray(obj[key]) && obj[key].length == 0) && key != "/rec_ui/mql_props")
+                if (obj[key] == undefined || ($.isArray(obj[key]) && obj[key].length == 0))
                     delete obj[key];
             }
             return obj

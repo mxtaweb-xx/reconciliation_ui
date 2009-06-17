@@ -3,9 +3,10 @@ function renderReviews() {
     var newTemplate = $(".templates .reviewNewTemplate");
     var reconciledTemplate = $(".templates .reviewReconciledTemplate");
     $.each(entities, function(idx,entity){ 
+        if (entity["/rec_ui/is_cvt"] || contains([null,undefined,""], entity.id))
+            return;
+
         var template;
-        if (entity.id === null || entity.id === undefined || entity.id === "")
-            return
         if (entity.id === "None")
             template = newTemplate.clone();
         else
