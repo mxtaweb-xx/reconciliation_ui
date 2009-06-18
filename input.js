@@ -259,14 +259,13 @@ function handleMQLPropMetadata(results) {
                 mqlMetadata[result.expected_type.id] = {reverse_property: result.id};
         });
     })
-
 }
 
 function objectifyRows() {
     $.each(rows, function(_,row) {
         for (var prop in row) {
             function objectifyRowProperty(value) {
-                var result = newEntity({'/type/object/name':row[meta.id],
+                var result = newEntity({'/type/object/name':value,
                               '/type/object/type':meta.expected_type.id,
                               '/rec_ui/headers': ['/type/object/name','/type/object/type'],
                               '/rec_ui/mql_props': [],
@@ -282,7 +281,11 @@ function objectifyRows() {
             var meta = mqlMetadata[prop];
             if (meta == undefined || isValueType(meta.expected_type))
                 continue;
-            row[prop] = $.map(row[prop], objectifyRowProperty)
+            var newProp = [];
+            for (var i = 0; i < row[prop].length; i++)
+                if (row[prop][i])
+                    newProp[i] = objectifyRowProperty(row[prop][i])
+            row[prop] = newProp
         }
         $.each(complexHeaders, function(_,complexHeader) {
             var valueArray = row[complexHeader];

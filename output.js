@@ -54,13 +54,16 @@ function renderSpreadsheet() {
         var parts = prop.split(":");
         var slot = obj;
         $.each(parts.slice(0,parts.length-1), function(k,part) {
-            if (slot[part] == undefined)
-                return undefined;
+            if (slot == undefined){
+                slot = undefined;
+                return;
+            }
             if ($.isArray(slot[part]))
                 slot = slot[part][0];
             else
                 slot = slot[part];
         });
+        if (slot == undefined) return undefined;
         return slot[parts[parts.length-1]];
     }
     function encodeRow(row) {
