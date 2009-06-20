@@ -216,6 +216,19 @@ function none(array, predicate) {
 
 function identity(value) {return value;}
 
+function getChainedProperty(entity, prop) {
+    var slots = [entity];
+    $.each(prop.split(":"), function(_,part) {
+        var newSlots = [];
+        $.each(slots, function(_,slot) {
+            newSlots = newSlots.concat($.grep($.makeArray(slot[part]),identity))
+        })
+        slots = newSlots;
+    });
+    if (slots === []) return undefined;
+    return slots;
+}
+
 
 /*
 ** create debugging tools if they're not available

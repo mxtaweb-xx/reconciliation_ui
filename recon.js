@@ -55,22 +55,37 @@ function autoReconcile() {
 }
 
 function getCandidates(entity, callback) {
+    function constructQueryPart(value) {
+        if (value.id != undefined && value.id != "" && value.id != "None")
+            return {"id":value.id, "name":value["/type/object/name"]}
+        return value["/type/object/name"] || value;
+    }
+
     var query = {}
     var headers = entity["/rec_ui/headers"];
     for (var i = 0; i < headers.length; i++) {
         var prop = headers[i];
-        var value = entity[prop];
-        
-        function constructQueryPart(value) {
-            if (value.id != undefined && value.id != "" && value.id != "None")
-                return {"id":value.id, "name":value["/type/object/name"]}
-            return value["/type/object/name"] || value;
-        }
-        if (value != undefined && value != null && value != "" && prop != "id") {
-            if(query[prop] == undefined)
-                query[prop] = [];
-            query[prop] = query[prop].concat($.map($.makeArray(value), constructQueryPart));
-        }
+        var parts = prop.split(":");
+        $.each($.makeArray(getChainedProperty(entity,prop)),function(j, value) {
+            var slot = query;
+            if (value == undefined || value == "")
+                return;
+            if (parts.length === 1){
+                slot[prop] = slot[prop] || [];
+                slot[prop][j] = constructQueryPart(value);
+                return;
+            }
+            
+            slot[parts[0]]    = slot[parts[0]]    || [];
+            slot[parts[0]][j] = slot[parts[0]][j] || {};
+            slot = slot[parts[0]][j]
+            $.each(parts.slice(1,parts.length-1), function(k,part) {
+                slot[part] = slot[part] || {};
+                slot = slot[part];
+            });
+            var lastPart = parts[parts.length-1];
+            slot[lastPart] = constructQueryPart(value);
+        })        
     }
     function handler(results) {
         entity.reconResults = results; 

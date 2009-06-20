@@ -142,9 +142,9 @@ function parseSpreadsheet(spreadsheet) {
         return true;
     });
     rows = [];
-    var rowHeaders  = simpleHeaders.slice();
-    var rowMqlProps = mqlProps.slice();
     while(spreadsheet.charAt(position) != ""){
+        var rowHeaders  = headers.slice();
+        var rowMqlProps = mqlProps.slice();
         var rowArray = parseLine();
         var entity = newEntity({"/rec_ui/headers": rowHeaders,
                                 "/rec_ui/mql_props": rowMqlProps});

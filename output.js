@@ -50,7 +50,7 @@ function renderSpreadsheet() {
         }
         return values.join("\t");
     }
-    function getNestedVal(obj, prop) {
+    function getNestedValue(obj, prop) {
         var parts = prop.split(":");
         var slot = obj;
         $.each(parts.slice(0,parts.length-1), function(k,part) {
@@ -69,7 +69,7 @@ function renderSpreadsheet() {
     function encodeRow(row) {
         var lines = [[]];
         for (var i = 0; i < headers.length; i++){
-            var val = getNestedVal(row, headers[i]);
+            var val = getNestedValue(row, headers[i]);
             if ($.isArray(val)) {
                 for (var j = 0; j < val.length; j++) {
                     if (lines[j] == undefined) lines[j] = [];
