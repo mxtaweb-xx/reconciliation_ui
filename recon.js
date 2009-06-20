@@ -158,7 +158,7 @@ function renderReconChoices(entity) {
     var currentRecord = $(".recordVals",template);
     for(var i = 0; i < headers.length; i++) {
         currentRecord.append(node("label", headers[i] + ":", {"for":idToClass(headers[i])}));
-        currentRecord.append(node("div",displayValue(entity[headers[i]])));
+        currentRecord.append(node("div",displayValue(getChainedProperty(entity,headers[i]))));
     }
     
     var tableHeader = $(".reconciliationCandidates table thead", template);
