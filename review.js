@@ -1,14 +1,17 @@
 function renderReviews() { 
     var container = $('.reconciliationsToReview').hide().empty();
     var newTemplate = $(".templates .reviewNewTemplate");
+    var skippedTemplate = $(".templates .reviewSkippedTemplate");
     var reconciledTemplate = $(".templates .reviewReconciledTemplate");
     $.each(entities, function(idx,entity){ 
-        if (entity["/rec_ui/is_cvt"] || contains([null,undefined,""], entity.id))
+        if (entity["/rec_ui/is_cvt"] || null == entity.id || $.isArray(entity.id))
             return;
 
         var template;
         if (entity.id === "None")
             template = newTemplate.clone();
+        else if(entity.id === "")
+            template = skippedTemplate.clone();
         else
             template = reconciledTemplate.clone();
         
