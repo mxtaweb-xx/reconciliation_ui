@@ -200,8 +200,11 @@ function renderCandidate(result, mqlProps, entity) {
     
     var names = node("td").appendTo(tableRow);
     for(var j = 0; j < result["name"].length; j++) {
-        names.append(node("a",result["name"][j], {target:"_blank", href:url})).append(node("br"));
+        var name = node("a",result["name"][j], {target:"_blank", href:url});
+        miniTopicFloater(name, result['id']);
+        names.append(name).append(node("br"));
     }
+
     
     tableRow.append(node("td",result["type"].join("<br/>")));
     

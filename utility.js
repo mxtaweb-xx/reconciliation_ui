@@ -229,6 +229,22 @@ function getChainedProperty(entity, prop) {
     return slots;
 }
 
+var miniTopicFloaterEl = $("#miniTopicFloater");
+function miniTopicFloater(element, id) {
+    element.bind("hover",function() {
+        miniTopicFloaterEl.freebaseMiniTopic(id).show();
+    })
+    element.bind("hoverend", function() {
+        miniTopicFloaterEl.hide();
+    })
+    element.mousemove(function(e){
+        miniTopicFloaterEl.css({
+            top: (e.pageY + 15) + "px",
+            left: (e.pageX + 15) + "px"
+        });
+    });
+}
+
 
 /*
 ** create debugging tools if they're not available
