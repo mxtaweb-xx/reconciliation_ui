@@ -147,7 +147,8 @@ function parseSpreadsheet(spreadsheet) {
         var rowMqlProps = mqlProps.slice();
         var rowArray = parseLine();
         var entity = newEntity({"/rec_ui/headers": rowHeaders,
-                                "/rec_ui/mql_props": rowMqlProps});
+                                "/rec_ui/mql_props": rowMqlProps,
+                                "/rec_ui/toplevel_entity": true});
         for (var i=0; i < headers.length; i++){
             var val = rowArray[i];
             if (rowArray[i] === "")
@@ -269,7 +270,7 @@ function objectifyRows() {
                               '/type/object/type':meta.expected_type.id,
                               '/rec_ui/headers': ['/type/object/name','/type/object/type'],
                               '/rec_ui/mql_props': [],
-                              "/rec_ui/column_val": true});
+                              });
                 if (meta.reverse_property != null){
                     result[meta.reverse_property] = row;
                     result['/rec_ui/headers'].push(meta.reverse_property);
@@ -320,7 +321,8 @@ function objectifyRows() {
                     slot[lastPart] = value;
                 else
                     slot[lastPart] = newEntity({"/type/object/type":meta.expected_type.id,
-                                                "/type/object/name":value})
+                                                "/type/object/name":value,
+                                                '/rec_ui/headers': ['/type/object/name','/type/object/type']})
             });
             delete row[complexHeader];
         });

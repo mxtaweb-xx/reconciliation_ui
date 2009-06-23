@@ -125,13 +125,13 @@ function freebaseLink(id, text) {
     return "<a target='_blank' href='"+freebase_url+"/view"+id+"'>" + text + "</a>"
 }
 
-function addColumnRecCases(row) {
-    if (! row["/rec_ui/column_val"]) {
+function addColumnRecCases(entity) {
+    if (entity["/rec_ui/toplevel_entity"]) {
         var autoQueueLength = automaticQueue.length;
         for (var i = 0; i < mqlProps.length; i++) {
-            var values = $.makeArray(row[mqlProps[i]]);
+            var values = $.makeArray(getChainedProperty(entity,mqlProps[i]));
             for (var j = 0; j < values.length; j++) {
-                if (values[j]['/type/object/name'] != undefined){
+                if (values[j] && values[j]['/type/object/name'] != undefined){
                     automaticQueue.push(values[j]);
                     totalRecords++;
                 }
