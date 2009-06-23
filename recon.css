@@ -174,3 +174,10 @@ label.findItem {
     background-color: #fff;
     border: 2px solid #999;
 }
+#miniTopicFloater .fbase-mt-nav {
+    display:none;
+}
+
+#miniTopicFloater .fbase-mt-box {
+    border:none;
+}
