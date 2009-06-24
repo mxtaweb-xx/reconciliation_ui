@@ -197,6 +197,7 @@ function partition(array, predicate) {
 }
 
 function all(array, predicate) {
+    if (!predicate) predicate = identity;
     for (var i = 0; i < array.length; i++)
         if (!predicate(array[i]))
             return false;
@@ -204,6 +205,7 @@ function all(array, predicate) {
 }
 
 function any(array, predicate) {
+    if (!predicate) predicate = identity;
     for (var i = 0; i < array.length; i++)
         if (predicate(array[i]))
             return true;

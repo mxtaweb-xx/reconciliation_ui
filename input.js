@@ -296,9 +296,13 @@ function objectifyRows() {
             var slot;
             function cvtEntity(meta, parent) {
                 var cvt = newEntity({"/type/object/type":meta.expected_type.id,
-                                     "/rec_ui/is_cvt":true});
-                if (meta.reverse_property != null)
+                                     "/rec_ui/is_cvt":true,
+                                     "/rec_ui/parent":parent,
+                                     "/rec_ui/mql_props" :[]});
+                if (meta.reverse_property != null){
                     cvt[meta.reverse_property] = parent;
+                    cvt["/rec_ui/mql_props"].push(meta.reverse_property);
+                }
                 return cvt;
             }
             var firstPart = parts[0];
@@ -321,10 +325,25 @@ function objectifyRows() {
                     return; //if we don't know what it is, leave it as it is
                 if (lastPart === "id" || isValueType(meta.expected_type))
                     slot[lastPart] = value;
-                else
-                    slot[lastPart] = newEntity({"/type/object/type":meta.expected_type.id,
+                else {
+                    var new_entity = newEntity({"/type/object/type":meta.expected_type.id,
                                                 "/type/object/name":value,
-                                                '/rec_ui/headers': ['/type/object/name','/type/object/type']})
+                                                '/rec_ui/headers': ['/type/object/name','/type/object/type'],
+                                                '/rec_ui/mql_props': [],
+                                                });
+                    if (meta.reverse_property) {
+                        new_entity[meta.reverse_property] = slot;
+//                         cvt["/rec_ui/mql_props"].push(meta.reverse_property);
+                        var reversedParts = $.map(parts.slice().reverse(), function(part) {return (mqlMetadata[part] && mqlMetadata[part].reverse_property) || false;});
+                        if (all(reversedParts)){
+                            new_entity["/rec_ui/mql_props"].push(reversedParts.join(":"));
+                            new_entity["/rec_ui/headers"].push(reversedParts.join(":"));
+                        }
+                            
+                    }
+                    slot[lastPart] = new_entity;
+                }
+                    
             });
             delete row[complexHeader];
         });
