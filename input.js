@@ -204,7 +204,11 @@ function spreadsheetParsed(callback) {
     function new_callback() {
         objectifyRows();
         totalRecords = rows.length;
-        automaticQueue = $.grep(rows,isUnreconciled);
+        var rec_partition = partition(rows,isUnreconciled);
+        automaticQueue = rec_partition[0];
+        $.each(rec_partition[1],function(_,reconciled_row){
+            addColumnRecCases(reconciled_row);
+        });
         $(".initialLoadingMessage").hide();
         callback();
     }

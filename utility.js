@@ -136,7 +136,8 @@ function addColumnRecCases(entity) {
             var values = $.makeArray(getChainedProperty(entity,mqlProps[i]));
             for (var j = 0; j < values.length; j++) {
                 if (values[j] && values[j]['/type/object/name'] != undefined){
-                    automaticQueue.push(values[j]);
+                    if (!values[j].id)
+                        automaticQueue.push(values[j]);
                     totalRecords++;
                 }
             }
