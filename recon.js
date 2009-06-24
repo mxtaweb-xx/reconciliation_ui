@@ -161,12 +161,12 @@ function renderReconChoices(entity) {
         currentRecord.append(node("div",displayValue(getChainedProperty(entity,headers[i]))));
     }
     
-    var tableHeader = $(".reconciliationCandidates table thead", template);
+    var tableHeader = $(".reconciliationCandidates table thead", template).empty();
     var columnHeaders = ["","Image","Names","Types"].concat(mqlProps).concat(["Score"]);
     for (var i = 0; i < columnHeaders.length; i++)
         tableHeader.append(node("th",columnHeaders[i]));
     
-    var tableBody = $(".reconciliationCandidates table tbody", template);
+    var tableBody = $(".reconciliationCandidates table tbody", template).empty();
     for (var i = 0; i < entity.reconResults.length; i++)
         tableBody.append(renderCandidate(entity.reconResults[i], mqlProps, entity));
 
