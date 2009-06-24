@@ -259,6 +259,12 @@ function fetchMqlProps(entity) {
         var envelope = {query:query};
         function handler(results) {
             fillInMQLProps(entity, results);
+            //don't show annoying loading symbols indefinitely if there's an error
+            $("#manualReconcile" + entity["/rec_ui/id"] + " .replaceme").empty();
+        }
+        if (simpleProps.length === 0){
+            handler();
+            continue;
         }
         $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {query:JSON.stringify(envelope)}, handler);
     }
@@ -266,16 +272,13 @@ function fetchMqlProps(entity) {
 
 function fillInMQLProps(entity, mqlResult) {
     var context = $("#manualReconcile" + entity["/rec_ui/id"]);
-    if (mqlResult["code"] != "/api/status/ok" || mqlResult["result"] == null) {
-        //don't show annoying loading symbols indefinitely if there's an error
-        $(".replaceme",context).empty();
+    if (!mqlResult || mqlResult["code"] != "/api/status/ok" || mqlResult["result"] == null) {
         console.error(mqlResult);
         return;
     }
 
     var result = mqlResult.result;
     var entity = $("tr." + idToClass(result.id),context);
-    $(".replaceme", entity).empty();
     
     var props = result["/type/reflect/any_master"].concat(
                 result["/type/reflect/any_value"]).concat(
