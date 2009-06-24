@@ -112,8 +112,12 @@ function textValue(value) {
 }
 
 function displayValue(value) {
-    if ($.isArray(value))
-        return $.map(value, displayValue).join("<br/>");
+    if ($.isArray(value)){
+        var result = node("span");
+        for (var i = 0; i < value.length; i++)
+            result.append(displayValue(value[i])).append("<br>");
+        return result;
+    }
     if (value == undefined || value == null)
         return "";
     if (value.id != undefined && value.id != "None")
