@@ -117,7 +117,7 @@ function displayValue(value) {
     if (value == undefined || value == null)
         return "";
     if (value.id != undefined && value.id != "None")
-        return freebaseLink(value.id, textValue(value["/type/object/name"]));
+        return miniTopicFloater($(freebaseLink(value.id, textValue(value["/type/object/name"] || value.name))), value.id);
     return textValue(value);
 }
 
@@ -245,6 +245,7 @@ function miniTopicFloater(element, id) {
             left: (e.pageX + 15) + "px"
         });
     });
+    return element;
 }
 
 

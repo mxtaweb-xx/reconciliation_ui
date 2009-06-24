@@ -163,7 +163,7 @@ function renderReconChoices(entity) {
     var currentRecord = $(".recordVals",template);
     for(var i = 0; i < headers.length; i++) {
         currentRecord.append(node("label", headers[i] + ":", {"for":idToClass(headers[i])}));
-        currentRecord.append(node("div",displayValue(getChainedProperty(entity,headers[i]))));
+        currentRecord.append(node("div").append(displayValue(getChainedProperty(entity,headers[i]))));
     }
     
     var tableHeader = $(".reconciliationCandidates table thead", template).empty();
@@ -285,11 +285,13 @@ function fillInMQLProps(entity, mqlResult) {
         var link = prop.link;
         if (link.master_property != undefined)
             link = link.master_property.reverse_property;
-        var cell = $("td." + idToClass(link), entity);
+        var cell = $("td." + idToClass(link), entity).empty();
         if (prop.value != undefined)
-            cell.html(cell.html() + prop.value + " <br/>");
+            cell.append(prop.value);
         else
-            cell.html(cell.html() + freebaseLink(prop.id, prop.name) + "<br/>")
+            cell.append(displayValue(prop));
+        cell.append("<br>");
+        cell.removeClass("replaceme");
     }
 }
 
