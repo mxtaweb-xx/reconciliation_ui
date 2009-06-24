@@ -222,6 +222,7 @@ function fetchMQLPropMetadata(callback) {
                 "id" : null
             },
             "reverse_property" : null,
+            "master_property"  : null,
             "type" : "/type/property",
             "id" : prop
         }
@@ -252,6 +253,7 @@ function handleMQLPropMetadata(results) {
                 return
             }
             result = result.result;
+            result.reverse_property = result.reverse_property || result.master_property;
             mqlMetadata[result['id']] = result;
             var idColumn = partsSoFar.concat("id").join(":");
             if (!isValueType(result.expected_type) && !contains(headers,idColumn))
