@@ -54,7 +54,7 @@ function autoReconcile() {
     getCandidates(automaticQueue[0], autoReconcileResults);
 }
 
-function getCandidates(entity, callback) {
+function constructReconciliationQuery(entity) {
     function constructQueryPart(value) {
         if (value.id != undefined && value.id != "" && value.id != "None")
             return {"id":value.id, "name":value["/type/object/name"]}
@@ -87,10 +87,15 @@ function getCandidates(entity, callback) {
             slot[lastPart] = constructQueryPart(value);
         })        
     }
+    return query;
+}
+
+function getCandidates(entity, callback) {
     function handler(results) {
         entity.reconResults = results; 
         callback(entity);
     }
+    var query = constructReconciliationQuery(entity);
     $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:4}, handler);
 }
 
