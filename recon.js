@@ -95,8 +95,11 @@ function getCandidates(entity, callback) {
         entity.reconResults = results; 
         callback(entity);
     }
+    var limit = 4;
+    if (entity.reconResults)
+        limit = entity.reconResults.length * 2;
     var query = constructReconciliationQuery(entity);
-    $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:4}, handler);
+    $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:limit}, handler);
 }
 
 function autoReconcileResults(entity) {
@@ -183,7 +186,14 @@ function renderReconChoices(entity) {
           entity['/rec_ui/freebase_name'] = $.makeArray(data.name);
           handleReconChoice(entity, data.id);
         });
-    $(".otherSelection", template).click(function(val) {handleReconChoice(entity, this.name)});
+    $(".otherSelection", template).click(function() {handleReconChoice(entity, this.name)});
+    $(".moreButton",template).click(function() {
+        $(".loadingMoreCandidates", template).show();
+        getCandidates(entity, function() {
+            $("#manualReconcile" + entity["/rec_ui/id"]).remove();
+            displayReconChoices(entity["/rec_ui/id"]);
+        })
+    })
     template.insertAfter("#manualReconcileTemplate")
 
     fetchMqlProps(entity);
