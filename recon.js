@@ -107,8 +107,8 @@ function autoReconcileResults(entity) {
     // no results, set to None:
     if(entity.reconResults.length == 0) {
         entity["id"] = "None";
-        console.warn("No results:");
-        console.warn(entity);
+        warn("No results:");
+        warn(entity);
         addColumnRecCases(entity);
     }        
     // match found:
@@ -283,7 +283,7 @@ function fetchMqlProps(entity) {
 function fillInMQLProps(entity, mqlResult) {
     var context = $("#manualReconcile" + entity["/rec_ui/id"]);
     if (!mqlResult || mqlResult["code"] != "/api/status/ok" || mqlResult["result"] == null) {
-        console.error(mqlResult);
+        error(mqlResult);
         return;
     }
 

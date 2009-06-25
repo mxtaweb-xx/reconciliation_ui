@@ -257,14 +257,21 @@ function miniTopicFloater(element, id) {
 /*
 ** create debugging tools if they're not available
 */
-
+function logger(log_level) {
+    if (console[log_level])
+        return function(message) {return console[log_level](message);};
+    return function(message){/*node("div",JSON.stringify(message)).appendTo("#" + log_level + "Log");*/ return message;}
+}
 
 //These messages don't go anywhere at the moment, but it'd be very easy to create the
 // places where they'd go
-if (window.console == undefined)
-    window.console = {
-        assert  :function(bool,message){if (!bool) console.error(message)},
-        error   :function(message){/*node("div",JSON.stringify(message)).appendTo("#errors");*/ return message;},
-        warn    :function(message){/*node("div",JSON.stringify(message)).appendTo("#warnings");*/ return message;},
-        log     :function(message){/*node("div",JSON.stringify(message)).appendTo("#log");*/ return message;}        
-    };
+var console = window.console || {};
+var error  = logger("error");
+var warn   = logger("warn" );
+var log    = logger("log"  );
+var info   = logger("info" );
+var assert = function() {
+    if (console.assert)
+        return function(bool, message) {return console.assert(bool,message);};
+    return function(bool,message){if (!bool) error(message)};
+}()

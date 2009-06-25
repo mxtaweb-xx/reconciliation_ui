@@ -84,7 +84,7 @@ function parseSpreadsheet(spreadsheet) {
                 }
                 
                 if (c == ""){
-                    console.error("unexpected end of input, no closing double-quote marks found");
+                    error("unexpected end of input, no closing double-quote marks found");
                     fields.push(field);
                     position+=1;
                     return fields;
@@ -237,7 +237,7 @@ function fetchMQLPropMetadata(callback) {
             envelope[simpleProp.replace(/\//g,'Z')] = {"query": getQuery(simpleProp)};
         })
     })
-    console.log(envelope);
+    log(envelope);
     function handler(results) {
         handleMQLPropMetadata(results);
         callback();
@@ -246,14 +246,14 @@ function fetchMQLPropMetadata(callback) {
 }
 
 function handleMQLPropMetadata(results) {
-    console.assert(results.code == "/api/status/ok", results);    
+    assert(results.code == "/api/status/ok", results);    
     $.each(mqlProps, function(_,complexProp){
         var partsSoFar = [];
         $.each(complexProp.split(":"), function(_, mqlProp) {
             var result = results[mqlProp.replace(/\//g,'Z')];
             partsSoFar.push(mqlProp);
             if (result.code != "/api/status/ok"){
-                console.error(result);
+                error(result);
                 return
             }
             result = result.result;

@@ -126,7 +126,7 @@ function getTriples(rows) {
         $.each(subject['/rec_ui/mql_props'], function(_, predicate) {
             $.each($.makeArray(subject[predicate]), function(_, object) {
                 if  (!isValidID(object.id)) {
-//                    console.log("object blank" + predicate + " " + subject['/rec_ui/id']);
+//                    log("object blank" + predicate + " " + subject['/rec_ui/id']);
                    return;
                 }
                 var metadata = mqlMetadata[predicate];
@@ -146,9 +146,9 @@ function checkLogin() {
     $(".uploadLogin").hide();
     $(".uploadForm").hide();
     $.getJSON(triplewriter_service + "check_login?jsonp=?",{},function(data) {
-        console.info(data);
+        info(data);
         if (!data.status || !data.status.code)
-            console.error(data);
+            error(data);
         else if (data.status.code === 200){
             $(".uploadLogin").hide();
             $(".uploadForm").show();
@@ -158,6 +158,6 @@ function checkLogin() {
             $(".uploadForm").hide();
         }
         else
-            console.error(data);
+            error(data);
     })
 }
