@@ -239,7 +239,7 @@ function getChainedProperty(entity, prop) {
 var miniTopicFloaterEl = $("#miniTopicFloater");
 function miniTopicFloater(element, id) {
     element.bind("hover",function() {
-        miniTopicFloaterEl.freebaseMiniTopic(id).show();
+        miniTopicFloaterEl.empty().freebaseMiniTopic(id).show();
     })
     element.bind("hoverend", function() {
         miniTopicFloaterEl.hide();
