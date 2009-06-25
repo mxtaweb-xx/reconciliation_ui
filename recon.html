@@ -159,6 +159,14 @@
                       <input type="submit" value="Upload">
                   </form>
               </div>
+              <br>
+              
+              <button class="triplesDisplayButton">Display Triples</button>
+              <div>
+                  <pre class='triplesDisplay invisible'>
+                  
+                  </pre>
+              </div>
           </div>
       </div>
       
@@ -322,7 +330,8 @@
              $("#progressbar").progressbar({value:0});
              if (window.location.hash != "")
                window.location.hash = ""
-         		$.historyInit(displayReconChoices);
+         	 $.historyInit(displayReconChoices);
+         	 $(".triplesDisplayButton").click(function(){$(".triplesDisplay").slideToggle()})
          });
 
          function updateUnreconciledCount() {

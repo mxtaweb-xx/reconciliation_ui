@@ -92,7 +92,7 @@ function renderSpreadsheet() {
     $("#outputSpreadSheet")[0].value = lines.join("\n");
     var triples = getTriples(rows);
     $(".triple_count").html(triples.length)
-    console.log(triples); //TEMPORARY
+    $(".triplesDisplay").html($.map(triples,function(val){return JSON.stringify(val)}).join("\n"));
     $('#payload')[0].value = JSON.stringify(triples);
 }
 
