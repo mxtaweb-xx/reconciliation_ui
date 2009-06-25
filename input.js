@@ -357,27 +357,32 @@ function objectifyRows() {
             the reconciliation service.
             Supports self referential objects (though not self referential arrays)*/
         function cleanup(obj, closed) {
+            //Only interested in Arrays and objects
+            if (typeof(obj) != "object")
+                return obj;
+            
+            //setup a closed list to handle mutually recursive data structures
             if (closed === undefined) closed = {};
             if (closed[obj])
-                return obj; //already processed this object
-            if (typeof(obj) === "String")
-                return obj
-            else if (obj === undefined)
-                return obj
-            else if ($.isArray(obj)) {
+                return obj; //we've seen this object before
+            
+            if ($.isArray(obj)) {
                 var arr = filter(obj, function(val){return val !== undefined});
                 if (arr.length === 1)
                     return cleanup(arr[0], closed);
                 else
                     return $.map(arr, function (val) {return cleanup(val,closed);});
             }
+            
             closed[obj] = true;
             for (var key in obj){
-                if (key.match(/^\/rec_ui\//)) continue;
+                if (key.match(/^\/rec_ui\//)) continue; //don't touch our own internal properties
                 obj[key] = cleanup(obj[key], closed);
             }
             return obj
         }
         cleanup(row);
+        if ($.isArray(row.id))
+            row.id = row.id[0];
     });
 }
