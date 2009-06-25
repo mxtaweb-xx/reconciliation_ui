@@ -92,7 +92,8 @@ function renderSpreadsheet() {
     $("#outputSpreadSheet")[0].value = lines.join("\n");
     var triples = getTriples(rows);
     $(".triple_count").html(triples.length)
-    $('#payload')[0].value = triples.join("\n")
+    console.log(triples); //TEMPORARY
+    $('#payload')[0].value = JSON.stringify(triples);
 }
 
 function getTriples(rows) {
@@ -107,35 +108,59 @@ function getTriples(rows) {
             return "$entity" + entity['/rec_ui/id'];
         return entity.id;
     }
-    function encodeValue(value) {
-        return '"' + value.replace("\\","\\\\").replace("\n","\\n").replace("\t","\\t").replace('"','\\"') + '"';
+    function cvtObject(cvt) {
+        var result = {};
+        var props = cvt['/rec_ui/cvt_props'];
+        var empty = true;
+        for (var i = 0; i < props.length; i++){
+            var id = getID(cvt[props[i]]);
+            if (id){
+                result[props[i]] = id;
+                empty = false;
+            }
+        }
+        if (empty)
+            return undefined;
+        return result;
     }
     $.each(entities, function(_,subject) {
-        if (!isValidID(subject.id))
+        if (!isValidID(subject.id) || subject['/rec_ui/is_cvt'])
             return;
         $.each($.makeArray(subject['/type/object/type']), function(_, type){
-            triples.push(getID(subject) + " /type/object/type " + type);
+            triples.push({s:getID(subject), p:"/type/object/type",o:type});
         });
         if (subject.id === "None"){
             $.each($.makeArray(subject["/type/object/name"]), function(_, name) {
                 if (name)
-                    triples.push(getID(subject) + " /type/object/name " + encodeValue(name));
+                    triples.push({s:getID(subject),p:"/type/object/name",o:name});
             });
         }
-
-        $.each(subject['/rec_ui/mql_props'], function(_, predicate) {
+        
+        var mqlProps = unique($.map(subject['/rec_ui/mql_props'], function(val){return val.split(":")[0]}));
+        $.each(mqlProps, function(_, predicate) {
+            
             $.each($.makeArray(subject[predicate]), function(_, object) {
-                if  (!isValidID(object.id)) {
-//                    console.log("object blank" + predicate + " " + subject['/rec_ui/id']);
-                   return;
-                }
                 var metadata = mqlMetadata[predicate];
-                if (metadata && isValueType(metadata.expected_type)){
-                    triples.push(getID(subect) + " " + predicate + " " + envodeValue(object));
+                if (!metadata)
+                    return; //punt if we don't know what kind of thing this is
+
+                if (isValueType(metadata.expected_type)){
+                    triples.push({s:getID(subject), p:predicate, o:object});
+                    return;
                 }
-                else {
-                    triples.push(getID(subject) + " " + predicate + " " + getID(object));
+                
+                if (object['/rec_ui/is_cvt']){
+                    if (!object['/rec_ui/parent'] === subject)
+                        return; //only create cvt once, from the 'root' of the parent
+                    var cvtTripleObject = cvtObject(object);
+                    if (cvtTripleObject)
+                        triples.push({s:getID(subject),p:predicate,o:cvtTripleObject}); 
                 }
+                
+                if  (!isValidID(object.id))
+                    return;
+                
+                triples.push({s:getID(subject),p:predicate,o:getID(object)});
             })
         });
     });

@@ -253,6 +253,18 @@ function miniTopicFloater(element, id) {
     return element;
 }
 
+function unique(array) {
+    var lookup = {};
+    var result = [];
+    for (var i = 0; i < array.length; i++) {
+        var val = array[i];
+        if (lookup[val])
+            continue;
+        lookup[val] = true;
+        result.push(val);
+    }
+    return result;
+}
 
 /*
 ** create debugging tools if they're not available

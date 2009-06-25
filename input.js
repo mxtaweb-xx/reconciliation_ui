@@ -302,7 +302,8 @@ function objectifyRows() {
                 var cvt = newEntity({"/type/object/type":meta.expected_type.id,
                                      "/rec_ui/is_cvt":true,
                                      "/rec_ui/parent":parent,
-                                     "/rec_ui/mql_props" :[]});
+                                     "/rec_ui/mql_props":[],
+                                     "/rec_ui/cvt_props":[]});
                 if (meta.reverse_property != null){
                     cvt[meta.reverse_property] = parent;
                     cvt["/rec_ui/mql_props"].push(meta.reverse_property);
@@ -346,6 +347,8 @@ function objectifyRows() {
                             
                     }
                     slot[lastPart] = new_entity;
+                    if (slot['/rec_ui/is_cvt'])
+                        slot['/rec_ui/cvt_props'].push(lastPart);
                 }
                     
             });
