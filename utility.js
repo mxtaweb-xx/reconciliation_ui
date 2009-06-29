@@ -253,6 +253,33 @@ function miniTopicFloater(element, id) {
     return element;
 }
 
+function time() {
+    return new Date().valueOf();
+}
+
+function slowEach(array, f, callback) {
+    var index = 0;
+    var startTime = time();
+    function iterate() {
+        while(index < array.length) {
+            f(index, array[index]);
+            index++;
+            if (time() > startTime + 100){
+                setTimeout(iterate, 0);
+                return;
+            }
+        }
+        if (callback) callback();
+    }
+    iterate();
+}
+
+function slowMap(array, f, callback) {
+    var result = [];
+    slowEach(array, function(index, value) {
+        result[index] = f(index,value);
+    }, function() {callback(result);});
+}
 
 /*
 ** create debugging tools if they're not available

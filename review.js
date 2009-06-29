@@ -1,9 +1,10 @@
 function renderReviews() { 
-    var container = $('.reconciliationsToReview').hide().empty();
+    var container = $('.templates .reconciliationsToReview').clone().empty();
+    $(".reconciliationsToReview:visible").replaceWith(container);
     var newTemplate = $(".templates .reviewNewTemplate");
     var skippedTemplate = $(".templates .reviewSkippedTemplate");
     var reconciledTemplate = $(".templates .reviewReconciledTemplate");
-    $.each(entities, function(idx,entity){ 
+    slowEach(entities, function(idx,entity){ 
         if (entity["/rec_ui/is_cvt"] || null == entity.id || $.isArray(entity.id))
             return;
 
@@ -35,5 +36,4 @@ function renderReviews() {
             $("#tabs > ul").tabs("select",0);})
         container.append(template);
     });
-    container.show();
 }
