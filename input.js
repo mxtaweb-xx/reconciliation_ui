@@ -202,15 +202,16 @@ function spreadsheetParsed(callback) {
         return contains([undefined,null,"indeterminate",""], entity.id);
     }
     function new_callback() {
-        objectifyRows();
-        totalRecords = rows.length;
-        var rec_partition = partition(rows,isUnreconciled);
-        automaticQueue = rec_partition[0];
-        $.each(rec_partition[1],function(_,reconciled_row){
-            addColumnRecCases(reconciled_row);
+        objectifyRows(function() {
+            totalRecords = rows.length;
+            var rec_partition = partition(rows,isUnreconciled);
+            automaticQueue = rec_partition[0];
+            $.each(rec_partition[1],function(_,reconciled_row){
+                addColumnRecCases(reconciled_row);
+            });
+            $(".initialLoadingMessage").hide();
+            callback();
         });
-        $(".initialLoadingMessage").hide();
-        callback();
     }
     if (mqlProps.length === 0)
         new_callback();
@@ -268,8 +269,8 @@ function handleMQLPropMetadata(results) {
     })
 }
 
-function objectifyRows() {
-    $.each(rows, function(_,row) {
+function objectifyRows(onComplete) {
+    slowEach(rows, function(_,row) {
         for (var prop in row) {
             function objectifyRowProperty(value) {
                 var result = newEntity({'/type/object/name':value,
@@ -384,5 +385,5 @@ function objectifyRows() {
         cleanup(row);
         if ($.isArray(row.id))
             row.id = row.id[0];
-    });
+    }, onComplete);
 }
