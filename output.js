@@ -96,7 +96,7 @@ function renderSpreadsheet() {
     lines.push(encodeLine(headers));
     $("#outputSpreadSheet")[0].value = "One moment, rendering...";
     
-    slowEach(rows, function(idx, row) {
+    politeEach(rows, function(idx, row) {
         lines = lines.concat(encodeRow(row));
     },
     function() {
@@ -128,7 +128,7 @@ function getTriples(rows, callback) {
     function encodeValue(value) {
         return '"' + value.replace("\\","\\\\").replace("\n","\\n").replace("\t","\\t").replace('"','\\"') + '"';
     }
-    slowEach(entities, function(_,subject) {
+    politeEach(entities, function(_,subject) {
         if (!isValidID(subject.id))
             return;
         $.each($.makeArray(subject['/type/object/type']), function(_, type){

@@ -270,7 +270,7 @@ function handleMQLPropMetadata(results) {
 }
 
 function objectifyRows(onComplete) {
-    slowEach(rows, function(_,row) {
+    politeEach(rows, function(_,row) {
         for (var prop in row) {
             function objectifyRowProperty(value) {
                 var result = newEntity({'/type/object/name':value,

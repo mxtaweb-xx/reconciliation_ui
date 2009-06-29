@@ -4,7 +4,7 @@ function renderReviews() {
     var newTemplate = $(".templates .reviewNewTemplate");
     var skippedTemplate = $(".templates .reviewSkippedTemplate");
     var reconciledTemplate = $(".templates .reviewReconciledTemplate");
-    slowEach(entities, function(idx,entity){ 
+    politeEach(entities, function(idx,entity){ 
         if (entity["/rec_ui/is_cvt"] || null == entity.id || $.isArray(entity.id))
             return;
 

@@ -257,7 +257,7 @@ function time() {
     return new Date().valueOf();
 }
 
-function slowEach(array, f, callback) {
+function politeEach(array, f, callback) {
     var index = 0;
     var startTime = time();
     function iterate() {
@@ -276,9 +276,9 @@ function slowEach(array, f, callback) {
     iterate();
 }
 
-function slowMap(array, f, callback) {
+function politeMap(array, f, callback) {
     var result = [];
-    slowEach(array, function(index, value) {
+    politeEach(array, function(index, value) {
         result[index] = f(index,value);
     }, function() {callback(result);});
 }
