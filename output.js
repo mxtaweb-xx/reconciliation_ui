@@ -31,6 +31,11 @@
 **  Rendering the spreadsheet back to the user
 */
 
+function onDisplayOutputScreen() {
+    renderSpreadsheet();
+    prepareTriples();
+}
+
 var triplewriter_service = "http://spreadsheet.rictic.user.dev.freebaseapps.com/"
 
 function encodeLine(arr) {
@@ -82,20 +87,33 @@ function encodeRow(row) {
     }
     return $.map(lines,encodeLine);
 }
+
+var nonce = 0;
 function renderSpreadsheet() {
-    checkLogin();
+    nonce++;
+    var nonceValue = nonce;
     var lines = [];
     lines.push(encodeLine(headers));
-    for (var i = 0; i < rows.length; i++)
-        lines = lines.concat(encodeRow(rows[i]));
-
-    $("#outputSpreadSheet")[0].value = lines.join("\n");
-    var triples = getTriples(rows);
-    $(".triple_count").html(triples.length)
-    $('#payload')[0].value = triples.join("\n")
+    $("#outputSpreadSheet")[0].value = "One moment, rendering...";
+    
+    slowEach(rows, function(idx, row) {
+        lines = lines.concat(encodeRow(row));
+    },
+    function() {
+        if (nonceValue === nonce)
+            $("#outputSpreadSheet")[0].value = lines.join("\n");
+    })
 }
 
-function getTriples(rows) {
+function prepareTriples() {
+    checkLogin();
+    getTriples(rows, function(triples) {
+        $(".triple_count").html(triples.length)
+        $('#payload')[0].value = triples.join("\n")
+    });
+}
+
+function getTriples(rows, callback) {
     var triples = [];
     function isValidID(id) {
         if ($.isArray(id))
@@ -110,7 +128,7 @@ function getTriples(rows) {
     function encodeValue(value) {
         return '"' + value.replace("\\","\\\\").replace("\n","\\n").replace("\t","\\t").replace('"','\\"') + '"';
     }
-    $.each(entities, function(_,subject) {
+    slowEach(entities, function(_,subject) {
         if (!isValidID(subject.id))
             return;
         $.each($.makeArray(subject['/type/object/type']), function(_, type){
@@ -138,8 +156,7 @@ function getTriples(rows) {
                 }
             })
         });
-    });
-    return triples;
+    }, function() {callback(triples)});
 }
 
 function checkLogin() {
