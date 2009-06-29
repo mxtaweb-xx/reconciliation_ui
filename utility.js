@@ -265,6 +265,8 @@ function slowEach(array, f, callback) {
             f(index, array[index]);
             index++;
             if (time() > startTime + 100){
+                info("yielding to UI thread");
+                startTime = time();
                 setTimeout(iterate, 0);
                 return;
             }
