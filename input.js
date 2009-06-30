@@ -258,13 +258,13 @@ function handleMQLPropMetadata(results) {
                 return
             }
             result = result.result;
-            result.reverse_property = result.reverse_property || result.master_property;
-            mqlMetadata[result['id']] = result;
+            result.inverse_property = result.reverse_property || result.master_property;
+            mqlMetadata[result.id] = result;
             var idColumn = partsSoFar.concat("id").join(":");
-            if (!isValueType(result.expected_type) && !contains(headers,idColumn))
+            if (!isValueProperty(result.id) && !contains(headers,idColumn))
                 headers.push(idColumn);
             if (result.expected_type && mqlMetadata[result.expected_type.id] == undefined)
-                mqlMetadata[result.expected_type.id] = {reverse_property: result.id};
+                mqlMetadata[result.expected_type.id] = {inverse_property: result.id};
         });
     })
 }
@@ -278,10 +278,10 @@ function objectifyRows(onComplete) {
                               '/rec_ui/headers': ['/type/object/name','/type/object/type'],
                               '/rec_ui/mql_props': [],
                               });
-                if (meta.reverse_property != null){
-                    result[meta.reverse_property] = row;
-                    result['/rec_ui/headers'].push(meta.reverse_property);
-                    result['/rec_ui/mql_props'].push(meta.reverse_property);
+                if (meta.inverse_property != null){
+                    result[meta.inverse_property] = row;
+                    result['/rec_ui/headers'].push(meta.inverse_property);
+                    result['/rec_ui/mql_props'].push(meta.inverse_property);
                 }
                 return result;
             }
@@ -304,9 +304,9 @@ function objectifyRows(onComplete) {
                                      "/rec_ui/is_cvt":true,
                                      "/rec_ui/parent":parent,
                                      "/rec_ui/mql_props" :[]});
-                if (meta.reverse_property != null){
-                    cvt[meta.reverse_property] = parent;
-                    cvt["/rec_ui/mql_props"].push(meta.reverse_property);
+                if (meta.inverse_property != null){
+                    cvt[meta.inverse_property] = parent;
+                    cvt["/rec_ui/mql_props"].push(meta.inverse_property);
                 }
                 return cvt;
             }
@@ -328,7 +328,7 @@ function objectifyRows(onComplete) {
                 var meta = mqlMetadata[lastPart];
                 if (meta === undefined && lastPart !== "id")
                     return; //if we don't know what it is, leave it as it is
-                if (lastPart === "id" || isValueType(meta.expected_type))
+                if (lastPart === "id" || isValueProperty(lastPart))
                     slot[lastPart] = value;
                 else {
                     var new_entity = newEntity({"/type/object/type":meta.expected_type.id,
@@ -336,10 +336,10 @@ function objectifyRows(onComplete) {
                                                 '/rec_ui/headers': ['/type/object/name','/type/object/type'],
                                                 '/rec_ui/mql_props': [],
                                                 });
-                    if (meta.reverse_property) {
-                        new_entity[meta.reverse_property] = slot;
-//                         cvt["/rec_ui/mql_props"].push(meta.reverse_property);
-                        var reversedParts = $.map(parts.slice().reverse(), function(part) {return (mqlMetadata[part] && mqlMetadata[part].reverse_property) || false;});
+                    if (meta.inverse_property) {
+                        new_entity[meta.inverse_property] = slot;
+//                         cvt["/rec_ui/mql_props"].push(meta.inverse_property);
+                        var reversedParts = $.map(parts.slice().reverse(), function(part) {return (mqlMetadata[part] && mqlMetadata[part].inverse_property) || false;});
                         if (all(reversedParts)){
                             new_entity["/rec_ui/mql_props"].push(reversedParts.join(":"));
                             new_entity["/rec_ui/headers"].push(reversedParts.join(":"));

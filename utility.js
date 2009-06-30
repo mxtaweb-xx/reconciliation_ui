@@ -147,6 +147,13 @@ function addColumnRecCases(entity) {
     }
 }
 
+function isValueProperty(propName) {
+    assert(mqlMetadata[propName], "mqlMetadata of " + propName + " is " + mqlMetadata[propName]);
+    if (mqlMetadata[propName])
+        return isValueType(mqlMetadata[propName].expected_type);
+    return undefined;
+}
+
 function isValueType(type) {
     return contains(type['extends'], "/type/value");
 }

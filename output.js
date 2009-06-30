@@ -147,13 +147,10 @@ function getTriples(rows, callback) {
 //                    log("object blank" + predicate + " " + subject['/rec_ui/id']);
                    return;
                 }
-                var metadata = mqlMetadata[predicate];
-                if (metadata && isValueType(metadata.expected_type)){
+                if (isValueProperty(predicate))
                     triples.push(getID(subect) + " " + predicate + " " + envodeValue(object));
-                }
-                else {
+                else
                     triples.push(getID(subject) + " " + predicate + " " + getID(object));
-                }
             })
         });
     }, function() {callback(triples)});
