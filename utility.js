@@ -80,7 +80,7 @@ function arrayDifference(source, toRemove) {
 
 //Uniquely maps MQL ids to valid CSS class names
 function idToClass(idName) {
-    return idName.replace(/\//g,"_");
+    return idName.replace(/\//g,"_").replace(":","___");
 }
 
 //Is value in array?

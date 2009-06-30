@@ -107,7 +107,7 @@ function autoReconcileResults(entity) {
     // no results, set to None:
     if(entity.reconResults.length == 0) {
         entity["id"] = "None";
-        warn("No results:");
+        warn("No candidates found for the object:");
         warn(entity);
         addColumnRecCases(entity);
     }        
@@ -238,13 +238,19 @@ function fetchMqlProps(entity) {
     for (var i = 0; i < entity.reconResults.length; i++) {
         var result = entity.reconResults[i];
         var query = {"id":result["id"]};
-        var simpleProps = $.grep(mqlProps, function(prop){return !prop.match(":")})
-        for (var j = 0; j < simpleProps.length; j++) {
-            if (isValueProperty(simpleProps[j]))
-                query[simpleProps[j]] = [];
+        $.each(mqlProps, function(_, prop) {
+            var slot = query;
+            var parts = prop.split(":");
+            $.each(parts.slice(0,parts.length-1), function(_, part) {
+                slot[part] = slot[part] || [{optional:true}];
+                slot = slot[part][0];
+            })
+            var lastPart = parts[parts.length-1];
+            if (isValueProperty(lastPart))
+                slot[lastPart] = [];
             else
-                query[simpleProps[j]] = [{"name":null,"id":null,"optional":true}];
-        }
+                slot[lastPart] = [{"name":null,"id":null,"optional":true}];
+        })
         var envelope = {query:query};
         function handler(results) {
             fillInMQLProps(entity, results);
