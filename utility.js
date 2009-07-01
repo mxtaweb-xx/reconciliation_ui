@@ -301,7 +301,8 @@ function logger(log_level) {
 
 //These messages don't go anywhere at the moment, but it'd be very easy to create the
 // places where they'd go
-var console = window.console || {};
+if (!window.console)
+    var console = {};
 var error  = logger("error");
 var warn   = logger("warn" );
 var log    = logger("log"  );
