@@ -1,0 +1,4 @@
+TestCase("MyTestCase", {
+    testA:function(){
+    }
+  });
