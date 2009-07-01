@@ -107,8 +107,8 @@ function autoReconcileResults(entity) {
     // no results, set to None:
     if(entity.reconResults.length == 0) {
         entity["id"] = "None";
-        console.warn("No results:");
-        console.warn(entity);
+        warn("No candidates found for the object:");
+        warn(entity);
         addColumnRecCases(entity);
     }        
     // match found:
@@ -237,44 +237,25 @@ function fetchMqlProps(entity) {
     if (mqlProps.length === 0) return;
     for (var i = 0; i < entity.reconResults.length; i++) {
         var result = entity.reconResults[i];
-        var simpleProps = $.grep(mqlProps, function(prop){return !prop.match(":")})
-        var query = {"id":result["id"],
-                     "/type/reflect/any_master" : [
-                       {
-                         "link|=" : simpleProps,
-                         "link" : null,
-                         "id" : null,
-                         "name" : null,
-                         "optional" : true
-                       }
-                     ],
-                     "/type/reflect/any_value" : [
-                       {
-                         "link|=" : simpleProps,
-                         "link" : null,
-                         "value" : null,
-                         "optional" : true
-                       }
-                     ],
-                     "/type/reflect/any_reverse" : [
-                        {
-                          "link" : {"master_property":{"reverse_property|=":simpleProps,
-                                    "reverse_property":null}},
-                          "id" : null,
-                          "name" : null,
-                          "optional" : true
-                        }
-                      ],
-                    };
+        var query = {"id":result["id"]};
+        $.each(mqlProps, function(_, prop) {
+            var slot = query;
+            var parts = prop.split(":");
+            $.each(parts.slice(0,parts.length-1), function(_, part) {
+                slot[part] = slot[part] || [{optional:true}];
+                slot = slot[part][0];
+            })
+            var lastPart = parts[parts.length-1];
+            if (isValueProperty(lastPart))
+                slot[lastPart] = [];
+            else
+                slot[lastPart] = [{"name":null,"id":null,"optional":true}];
+        })
         var envelope = {query:query};
         function handler(results) {
             fillInMQLProps(entity, results);
             //don't show annoying loading symbols indefinitely if there's an error
             $("#manualReconcile" + entity["/rec_ui/id"] + " .replaceme").empty();
-        }
-        if (simpleProps.length === 0){
-            handler();
-            continue;
         }
         $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {query:JSON.stringify(envelope)}, handler);
     }
@@ -283,27 +264,17 @@ function fetchMqlProps(entity) {
 function fillInMQLProps(entity, mqlResult) {
     var context = $("#manualReconcile" + entity["/rec_ui/id"]);
     if (!mqlResult || mqlResult["code"] != "/api/status/ok" || mqlResult["result"] == null) {
-        console.error(mqlResult);
+        error(mqlResult);
         return;
     }
 
     var result = mqlResult.result;
     var entity = $("tr." + idToClass(result.id),context);
     
-    var props = result["/type/reflect/any_master"].concat(
-                result["/type/reflect/any_value"]).concat(
-                result["/type/reflect/any_reverse"]);
-    for (var i = 0; i < props.length; i++) {
-        var prop = props[i];
-        var link = prop.link;
-        if (link.master_property != undefined)
-            link = link.master_property.reverse_property;
-        var cell = $("td." + idToClass(link), entity).empty();
-        if (prop.value != undefined)
-            cell.append(prop.value);
-        else
-            cell.append(displayValue(prop));
-        cell.append("<br>");
+    
+    for (var i = 0; i < mqlProps.length; i++) {
+        var cell = $("td." + idToClass(mqlProps[i]), entity).empty();
+        cell.append(displayValue(getChainedProperty(result, mqlProps[i])));
         cell.removeClass("replaceme");
     }
 }

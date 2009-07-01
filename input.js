@@ -84,7 +84,7 @@ function parseSpreadsheet(spreadsheet) {
                 }
                 
                 if (c == ""){
-                    console.error("unexpected end of input, no closing double-quote marks found");
+                    error("unexpected end of input, no closing double-quote marks found");
                     fields.push(field);
                     position+=1;
                     return fields;
@@ -202,15 +202,16 @@ function spreadsheetParsed(callback) {
         return contains([undefined,null,"indeterminate",""], entity.id);
     }
     function new_callback() {
-        objectifyRows();
-        totalRecords = rows.length;
-        var rec_partition = partition(rows,isUnreconciled);
-        automaticQueue = rec_partition[0];
-        $.each(rec_partition[1],function(_,reconciled_row){
-            addColumnRecCases(reconciled_row);
+        objectifyRows(function() {
+            totalRecords = rows.length;
+            var rec_partition = partition(rows,isUnreconciled);
+            automaticQueue = rec_partition[0];
+            $.each(rec_partition[1],function(_,reconciled_row){
+                addColumnRecCases(reconciled_row);
+            });
+            $(".initialLoadingMessage").hide();
+            callback();
         });
-        $(".initialLoadingMessage").hide();
-        callback();
     }
     if (mqlProps.length === 0)
         new_callback();
@@ -237,7 +238,7 @@ function fetchMQLPropMetadata(callback) {
             envelope[simpleProp.replace(/\//g,'Z')] = {"query": getQuery(simpleProp)};
         })
     })
-    console.log(envelope);
+    log(envelope);
     function handler(results) {
         handleMQLPropMetadata(results);
         callback();
@@ -246,30 +247,30 @@ function fetchMQLPropMetadata(callback) {
 }
 
 function handleMQLPropMetadata(results) {
-    console.assert(results.code == "/api/status/ok", results);    
+    assert(results.code == "/api/status/ok", results);    
     $.each(mqlProps, function(_,complexProp){
         var partsSoFar = [];
         $.each(complexProp.split(":"), function(_, mqlProp) {
             var result = results[mqlProp.replace(/\//g,'Z')];
             partsSoFar.push(mqlProp);
             if (result.code != "/api/status/ok"){
-                console.error(result);
+                error(result);
                 return
             }
             result = result.result;
-            result.reverse_property = result.reverse_property || result.master_property;
-            mqlMetadata[result['id']] = result;
+            result.inverse_property = result.reverse_property || result.master_property;
+            mqlMetadata[result.id] = result;
             var idColumn = partsSoFar.concat("id").join(":");
-            if (!isValueType(result.expected_type) && !contains(headers,idColumn))
+            if (!isValueProperty(result.id) && !contains(headers,idColumn))
                 headers.push(idColumn);
             if (result.expected_type && mqlMetadata[result.expected_type.id] == undefined)
-                mqlMetadata[result.expected_type.id] = {reverse_property: result.id};
+                mqlMetadata[result.expected_type.id] = {inverse_property: result.id};
         });
     })
 }
 
-function objectifyRows() {
-    $.each(rows, function(_,row) {
+function objectifyRows(onComplete) {
+    politeEach(rows, function(_,row) {
         for (var prop in row) {
             function objectifyRowProperty(value) {
                 var result = newEntity({'/type/object/name':value,
@@ -277,10 +278,10 @@ function objectifyRows() {
                               '/rec_ui/headers': ['/type/object/name','/type/object/type'],
                               '/rec_ui/mql_props': [],
                               });
-                if (meta.reverse_property != null){
-                    result[meta.reverse_property] = row;
-                    result['/rec_ui/headers'].push(meta.reverse_property);
-                    result['/rec_ui/mql_props'].push(meta.reverse_property);
+                if (meta.inverse_property != null){
+                    result[meta.inverse_property] = row;
+                    result['/rec_ui/headers'].push(meta.inverse_property);
+                    result['/rec_ui/mql_props'].push(meta.inverse_property);
                 }
                 return result;
             }
@@ -302,11 +303,11 @@ function objectifyRows() {
                 var cvt = newEntity({"/type/object/type":meta.expected_type.id,
                                      "/rec_ui/is_cvt":true,
                                      "/rec_ui/parent":parent,
-                                     "/rec_ui/mql_props":[],
+                                     "/rec_ui/mql_props" :[],
                                      "/rec_ui/cvt_props":[]});
-                if (meta.reverse_property != null){
-                    cvt[meta.reverse_property] = parent;
-                    cvt["/rec_ui/mql_props"].push(meta.reverse_property);
+                if (meta.inverse_property != null){
+                    cvt[meta.inverse_property] = parent;
+                    cvt["/rec_ui/mql_props"].push(meta.inverse_property);
                 }
                 return cvt;
             }
@@ -328,7 +329,7 @@ function objectifyRows() {
                 var meta = mqlMetadata[lastPart];
                 if (meta === undefined && lastPart !== "id")
                     return; //if we don't know what it is, leave it as it is
-                if (lastPart === "id" || isValueType(meta.expected_type))
+                if (lastPart === "id" || isValueProperty(lastPart))
                     slot[lastPart] = value;
                 else {
                     var new_entity = newEntity({"/type/object/type":meta.expected_type.id,
@@ -336,10 +337,10 @@ function objectifyRows() {
                                                 '/rec_ui/headers': ['/type/object/name','/type/object/type'],
                                                 '/rec_ui/mql_props': [],
                                                 });
-                    if (meta.reverse_property) {
-                        new_entity[meta.reverse_property] = slot;
-//                         cvt["/rec_ui/mql_props"].push(meta.reverse_property);
-                        var reversedParts = $.map(parts.slice().reverse(), function(part) {return (mqlMetadata[part] && mqlMetadata[part].reverse_property) || false;});
+                    if (meta.inverse_property) {
+                        new_entity[meta.inverse_property] = slot;
+//                         cvt["/rec_ui/mql_props"].push(meta.inverse_property);
+                        var reversedParts = $.map(parts.slice().reverse(), function(part) {return (mqlMetadata[part] && mqlMetadata[part].inverse_property) || false;});
                         if (all(reversedParts)){
                             new_entity["/rec_ui/mql_props"].push(reversedParts.join(":"));
                             new_entity["/rec_ui/headers"].push(reversedParts.join(":"));
@@ -387,5 +388,5 @@ function objectifyRows() {
         cleanup(row);
         if ($.isArray(row.id))
             row.id = row.id[0];
-    });
+    }, onComplete);
 }

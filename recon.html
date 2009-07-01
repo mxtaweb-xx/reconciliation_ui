@@ -99,7 +99,7 @@
                 <div class="currentRecord">
                   <h4>Current Record:</h4>
                   <div class="recordVals">
-                  
+
                   </div>
                 </div>
                 
@@ -132,7 +132,11 @@
                     <tr><td></td><td></td></tr> 
                   </tbody>
               </table>
+              
               <table class='invisible templates'>
+                  <tbody class='reconciliationsToReview'>
+                      <tr><td></td><td></td></tr> 
+                    </tbody>
               <tr class='reviewReconciledTemplate'><td class='candidateName'>Stevie wonder</td><td class='freebaseName'>Stevie Wonder</td></tr>
               <tr class='reviewNewTemplate'><td class='candidateName'>Stevie wonder</td><td>None - create a new one</td>
               <tr class='reviewSkippedTemplate'><td class='candidateName'>Stevie wonder</td><td>Manually Skipped - not reconciled </td>
@@ -308,7 +312,7 @@
              tabs.bind("tabsselect", function(event, ui) {
                  if(ui.index == 0)       manualReconcile();
                  else if(ui.index == 1)  renderReviews();
-                 else if (ui.index == 2) renderSpreadsheet();
+                 else if (ui.index == 2) onDisplayOutputScreen();
              });
              $("#tabs").show();
              tabs.tabs("select", 0);

@@ -31,6 +31,11 @@
 **  Rendering the spreadsheet back to the user
 */
 
+function onDisplayOutputScreen() {
+    renderSpreadsheet();
+    prepareTriples();
+}
+
 var triplewriter_service = "http://spreadsheet.rictic.user.dev.freebaseapps.com/"
 
 function encodeLine(arr) {
@@ -82,21 +87,39 @@ function encodeRow(row) {
     }
     return $.map(lines,encodeLine);
 }
+
+var nonce = 0;
 function renderSpreadsheet() {
-    checkLogin();
+    nonce++;
+    var nonceValue = nonce;
     var lines = [];
     lines.push(encodeLine(headers));
-    for (var i = 0; i < rows.length; i++)
-        lines = lines.concat(encodeRow(rows[i]));
-
-    $("#outputSpreadSheet")[0].value = lines.join("\n");
-    var triples = getTriples(rows);
-    $(".triple_count").html(triples.length)
-    $(".triplesDisplay").html($.map(triples,function(val){return JSON.stringify(val)}).join("\n"));
-    $('#payload')[0].value = JSON.stringify(triples);
+    $("#outputSpreadSheet")[0].value = "One moment, rendering...";
+    
+    politeEach(rows, function(idx, row) {
+        lines = lines.concat(encodeRow(row));
+    },
+    function() {
+        if (nonceValue === nonce)
+            $("#outputSpreadSheet")[0].value = lines.join("\n");
+    })
 }
 
-function getTriples(rows) {
+function prepareTriples() {
+    checkLogin();
+    getTriples(rows, function(triples) {
+        politeMap(triples,function(_,val){return JSON.stringify(val)},
+            function(encodedTriples) {
+                var tripleString = encodedTriples.join("\n");
+                $(".triplesDisplay").html(tripleString);
+                $(".triple_count").html(encodedTriples.length);
+                $('#payload')[0].value = tripleString;
+            }
+        );
+    });
+}
+
+function getTriples(rows, callback) {
     var triples = [];
     function isValidID(id) {
         if ($.isArray(id))
@@ -123,7 +146,7 @@ function getTriples(rows) {
             return undefined;
         return result;
     }
-    $.each(entities, function(_,subject) {
+    politeEach(entities, function(_,subject) {
         if (!isValidID(subject.id) || subject['/rec_ui/is_cvt'])
             return;
         $.each($.makeArray(subject['/type/object/type']), function(_, type){
@@ -140,11 +163,7 @@ function getTriples(rows) {
         $.each(mqlProps, function(_, predicate) {
             
             $.each($.makeArray(subject[predicate]), function(_, object) {
-                var metadata = mqlMetadata[predicate];
-                if (!metadata)
-                    return; //punt if we don't know what kind of thing this is
-
-                if (isValueType(metadata.expected_type)){
+                if (isValueProperty(predicate)) {
                     triples.push({s:getID(subject), p:predicate, o:object});
                     return;
                 }
@@ -163,17 +182,16 @@ function getTriples(rows) {
                 triples.push({s:getID(subject),p:predicate,o:getID(object)});
             })
         });
-    });
-    return triples;
+    }, function() {callback(triples)});
 }
 
 function checkLogin() {
     $(".uploadLogin").hide();
     $(".uploadForm").hide();
     $.getJSON(triplewriter_service + "check_login?jsonp=?",{},function(data) {
-        console.info(data);
+        info(data);
         if (!data.status || !data.status.code)
-            console.error(data);
+            error(data);
         else if (data.status.code === 200){
             $(".uploadLogin").hide();
             $(".uploadForm").show();
@@ -183,6 +201,6 @@ function checkLogin() {
             $(".uploadForm").hide();
         }
         else
-            console.error(data);
+            error(data);
     })
 }
