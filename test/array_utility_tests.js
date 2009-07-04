@@ -1,4 +1,0 @@
-TestCase("MyTestCase", {
-    testA:function(){
-    }
-  });

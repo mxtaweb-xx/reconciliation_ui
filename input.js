@@ -157,6 +157,7 @@ function parseSpreadsheet(spreadsheet) {
         }   
         rows.push(entity);
     }
+    return rows;
 }
 
 function combineRows() {
