@@ -310,7 +310,7 @@
              tabs.tabs("select", 0);
              spreadsheetParsed(beginAutoReconciliation);
          }
-
+         var reconciliationBegun = false;
          $(document).ready(function() {
              jQuery.ajaxSettings.cache = true; //keeps jquery from inserting cache-busting timecodes into json requests
 
@@ -327,6 +327,11 @@
              if (window.location.hash != "")
                window.location.hash = ""
          		$.historyInit(displayReconChoices);
+     	     window.onbeforeunload = function() {
+     	         if (reconciliationBegun)
+                     return "You may have unsaved changes.  Make sure to copy your updated spreadsheet or upload your data to Freebase on the Retrieve Your Data tab.";
+             };
+             
          });
 
          function updateUnreconciledCount() {

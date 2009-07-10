@@ -37,6 +37,7 @@ function beginAutoReconciliation() {
     $(".nowReconciling").show();
     $(".notReconciling").hide();
     $("#gettingInput").remove();
+    reconciliationBegun = true;
     autoReconcile();
 }
 
