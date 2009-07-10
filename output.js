@@ -106,7 +106,6 @@ function renderSpreadsheet() {
 }
 
 function prepareTriples() {
-    checkLogin();
     getTriples(rows, function(triples) {
         $(".triple_count").html(triples.length)
         $('#payload')[0].value = triples.join("\n")

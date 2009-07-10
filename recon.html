@@ -153,20 +153,15 @@
               <h3>Upload your data to Freebase:</h3>
               We've found <span class='triple_count'></span> assertions that you can upload.
               <br>
-              <div class="uploadLogin">
-                  <a href="http://spreadsheet.rictic.user.dev.freebaseapps.com/login">Login</a> to upload to freebase.  <button onClick='checkLogin()'>Refresh</button>
-              </div>
-              
-              <div class="uploadForm">
-                  <form action="http://data.labs.freebase.com/freeq/prod/" target="_blank" method="POST" accept-charset="utf-8">
-                      <input type='hidden' name="action_type" value="LOAD_TRIPLE" id="action_type">
-                      <input type="hidden" name="operator" value="/user/spreadsheet_bot" id="operator">
-                      <input type="hidden" name="check_params" value="false" id="check_params">
-                      <input type="hidden" name="graphport" value="sandbox" id="graphport">
-                      <input type="hidden" name="payload" value="" id="payload">
-                      <input type="submit" value="Upload">
-                  </form>
-              </div>
+              <form action="http://data.labs.freebase.com/freeq/prod/" target="_blank" method="POST" accept-charset="utf-8">
+                  <label for="username">Your Freebase username: </label><input type="text" name="user" value="/user/" id="user">
+                  <input type='hidden' name="action_type" value="LOAD_TRIPLE" id="action_type">
+                  <input type="hidden" name="operator" value="/user/spreadsheet_bot" id="operator">
+                  <input type="hidden" name="check_params" value="false" id="check_params">
+                  <input type="hidden" name="graphport" value="sandbox" id="graphport">
+                  <input type="hidden" name="payload" value="" id="payload">
+                  <input type="submit" value="Upload">
+              </form>
           </div>
       </div>
       
