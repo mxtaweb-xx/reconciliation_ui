@@ -139,7 +139,7 @@
                     </tbody>
               <tr class='reviewReconciledTemplate'><td class='candidateName'>Stevie wonder</td><td class='freebaseName'>Stevie Wonder</td></tr>
               <tr class='reviewNewTemplate'><td class='candidateName'>Stevie wonder</td><td>None - create a new one</td>
-              <tr class='reviewSkippedTemplate'><td class='candidateName'>Stevie wonder</td><td>Manually Skipped - not reconciled </td>
+              <tr class='reviewSkippedTemplate'><td class='candidateName'>Stevie wonder</td><td>Manually Skipped - not reconciled</td>
               </table>
           </div>
           
@@ -158,7 +158,11 @@
               </div>
               
               <div class="uploadForm">
-                  <form action="http://spreadsheet.rictic.user.dev.freebaseapps.com/triplewriter" target="_blank" method="POST" accept-charset="utf-8">
+                  <form action="http://data.labs.freebase.com/freeq/prod/" target="_blank" method="POST" accept-charset="utf-8">
+                      <input type='hidden' name="action_type" value="LOAD_TRIPLE" id="action_type">
+                      <input type="hidden" name="operator" value="/user/spreadsheet_bot" id="operator">
+                      <input type="hidden" name="check_params" value="false" id="check_params">
+                      <input type="hidden" name="graphport" value="sandbox" id="graphport">
                       <input type="hidden" name="payload" value="" id="payload">
                       <input type="submit" value="Upload">
                   </form>
