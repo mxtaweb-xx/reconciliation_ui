@@ -154,7 +154,7 @@
               <h3>Upload your data to Freebase:</h3>
               We've found <span class='triple_count'></span> assertions that you can upload.
               <br>
-              <form action="http://data.labs.freebase.com/freeq/prod/" target="_blank" method="POST" accept-charset="utf-8">
+              <form action="http://data.labs.freebase.com/freeq/spreadsheet/" target="_blank" method="POST" accept-charset="utf-8">
                   <label for="username">Your Freebase username: </label><input type="text" name="user" value="/user/" id="user"><br>
                   <input type='hidden' name="action_type" value="LOAD_TRIPLE" id="action_type">
                   <input type="hidden" name="operator" value="/user/spreadsheet_bot" id="operator">
@@ -163,6 +163,14 @@
                   <input type="hidden" name="payload" value="" id="payload">
                   <input type="submit" value="Upload">
               </form>
+              <br>
+              
+              <button class="triplesDisplayButton">Display Triples</button>
+              <div>
+                  <pre class='triplesDisplay invisible'>
+                  
+                  </pre>
+              </div>
           </div>
       </div>
       
@@ -332,6 +340,8 @@
                      return "You may have unsaved changes.  Make sure to copy your updated spreadsheet or upload your data to Freebase on the Retrieve Your Data tab.";
              };
              
+         	 $.historyInit(displayReconChoices);
+         	 $(".triplesDisplayButton").click(function(){$(".triplesDisplay").slideToggle()})
          });
 
          function updateUnreconciledCount() {
