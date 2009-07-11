@@ -37,6 +37,7 @@ function beginAutoReconciliation() {
     $(".nowReconciling").show();
     $(".notReconciling").hide();
     $("#gettingInput").remove();
+    reconciliationBegun = true;
     autoReconcile();
 }
 
@@ -54,29 +55,52 @@ function autoReconcile() {
     getCandidates(automaticQueue[0], autoReconcileResults);
 }
 
-function getCandidates(entity, callback) {
+function constructReconciliationQuery(entity) {
+    function constructQueryPart(value) {
+        if (value.id != undefined && value.id != "" && value.id != "None")
+            return {"id":value.id, "name":value["/type/object/name"]}
+        return value["/type/object/name"] || value;
+    }
+
     var query = {}
     var headers = entity["/rec_ui/headers"];
     for (var i = 0; i < headers.length; i++) {
         var prop = headers[i];
-        var value = entity[prop];
-        
-        function constructQueryPart(value) {
-            if (value.id != undefined && value.id != "" && value.id != "None")
-                return {"id":value.id, "name":value["/type/object/name"]}
-            return value["/type/object/name"] || value;
-        }
-        if (value != undefined && value != null && value != "" && prop != "id") {
-            if(query[prop] == undefined)
-                query[prop] = [];
-            query[prop] = query[prop].concat($.map($.makeArray(value), constructQueryPart));
-        }
+        var parts = prop.split(":");
+        $.each($.makeArray(getChainedProperty(entity,prop)),function(j, value) {
+            var slot = query;
+            if (value == undefined || value == "")
+                return;
+            if (parts.length === 1){
+                slot[prop] = slot[prop] || [];
+                slot[prop][j] = constructQueryPart(value);
+                return;
+            }
+            
+            slot[parts[0]]    = slot[parts[0]]    || [];
+            slot[parts[0]][j] = slot[parts[0]][j] || {};
+            slot = slot[parts[0]][j]
+            $.each(parts.slice(1,parts.length-1), function(k,part) {
+                slot[part] = slot[part] || {};
+                slot = slot[part];
+            });
+            var lastPart = parts[parts.length-1];
+            slot[lastPart] = constructQueryPart(value);
+        })        
     }
+    return query;
+}
+
+function getCandidates(entity, callback) {
     function handler(results) {
         entity.reconResults = results; 
         callback(entity);
     }
-    $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:4}, handler);
+    var limit = 4;
+    if (entity.reconResults)
+        limit = entity.reconResults.length * 2;
+    var query = constructReconciliationQuery(entity);
+    $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:limit}, handler);
 }
 
 function autoReconcileResults(entity) {
@@ -84,13 +108,14 @@ function autoReconcileResults(entity) {
     // no results, set to None:
     if(entity.reconResults.length == 0) {
         entity["id"] = "None";
-        console.warn("No results:");
-        console.warn(entity);
+        warn("No candidates found for the object:");
+        warn(entity);
         addColumnRecCases(entity);
     }        
     // match found:
     else if(entity.reconResults[0]["match"] == true) {
-        entity["id"] = entity.reconResults[0].id;
+        entity.id = entity.reconResults[0].id;
+        canonicalizeFreebaseId(entity);
         entity["/rec_ui/freebase_name"] = entity.reconResults[0].name;
         addColumnRecCases(entity);
     }
@@ -142,27 +167,36 @@ function renderReconChoices(entity) {
     var currentRecord = $(".recordVals",template);
     for(var i = 0; i < headers.length; i++) {
         currentRecord.append(node("label", headers[i] + ":", {"for":idToClass(headers[i])}));
-        currentRecord.append(node("div",displayValue(entity[headers[i]])));
+        currentRecord.append(node("div").append(displayValue(getChainedProperty(entity,headers[i]))));
     }
     
-    var tableHeader = $(".reconciliationCandidates table thead", template);
+    var tableHeader = $(".reconciliationCandidates table thead", template).empty();
     var columnHeaders = ["","Image","Names","Types"].concat(mqlProps).concat(["Score"]);
     for (var i = 0; i < columnHeaders.length; i++)
         tableHeader.append(node("th",columnHeaders[i]));
     
-    var tableBody = $(".reconciliationCandidates table tbody", template);
+    var tableBody = $(".reconciliationCandidates table tbody", template).empty();
     for (var i = 0; i < entity.reconResults.length; i++)
         tableBody.append(renderCandidate(entity.reconResults[i], mqlProps, entity));
 
     $('.reconciliationCandidates table tbody tr:odd', template).addClass('odd');
     $('.reconciliationCandidates table tbody tr:even', template).addClass('even');
     $(".find_topic", template)
-        .freebaseSuggest()
+        .suggest({type:entity['/type/object/type'],
+                  type_strict:"should",
+                  flyout:true})
         .bind("fb-select", function(e, data) { 
           entity['/rec_ui/freebase_name'] = $.makeArray(data.name);
           handleReconChoice(entity, data.id);
         });
-    $(".otherSelection", template).click(function(val) {handleReconChoice(entity, this.name)});
+    $(".otherSelection", template).click(function() {handleReconChoice(entity, this.name)});
+    $(".moreButton",template).click(function() {
+        $(".loadingMoreCandidates", template).show();
+        getCandidates(entity, function() {
+            $("#manualReconcile" + entity["/rec_ui/id"]).remove();
+            displayReconChoices(entity["/rec_ui/id"]);
+        })
+    })
     template.insertAfter("#manualReconcileTemplate")
 
     fetchMqlProps(entity);
@@ -184,8 +218,11 @@ function renderCandidate(result, mqlProps, entity) {
     
     var names = node("td").appendTo(tableRow);
     for(var j = 0; j < result["name"].length; j++) {
-        names.append(node("a",result["name"][j], {target:"_blank", href:url})).append(node("br"));
+        var name = node("a",result["name"][j], {target:"_blank", href:url});
+        miniTopicFloater(name, result['id']);
+        names.append(name).append(node("br"));
     }
+
     
     tableRow.append(node("td",result["type"].join("<br/>")));
     
@@ -200,39 +237,28 @@ function renderCandidate(result, mqlProps, entity) {
 
 function fetchMqlProps(entity) {
     var mqlProps = entity["/rec_ui/mql_props"];
+    if (mqlProps.length === 0) return;
     for (var i = 0; i < entity.reconResults.length; i++) {
         var result = entity.reconResults[i];
-        var query = {"id":result["id"],
-                     "/type/reflect/any_master" : [
-                       {
-                         "link|=" : mqlProps,
-                         "link" : null,
-                         "id" : null,
-                         "name" : null,
-                         "optional" : true
-                       }
-                     ],
-                     "/type/reflect/any_value" : [
-                       {
-                         "link|=" : mqlProps,
-                         "link" : null,
-                         "value" : null,
-                         "optional" : true
-                       }
-                     ],
-                     "/type/reflect/any_reverse" : [
-                        {
-                          "link" : {"master_property":{"reverse_property|=":mqlProps,
-                                    "reverse_property":null}},
-                          "id" : null,
-                          "name" : null,
-                          "optional" : true
-                        }
-                      ],
-                    };
+        var query = {"id":result["id"]};
+        $.each(mqlProps, function(_, prop) {
+            var slot = query;
+            var parts = prop.split(":");
+            $.each(parts.slice(0,parts.length-1), function(_, part) {
+                slot[part] = slot[part] || [{optional:true}];
+                slot = slot[part][0];
+            })
+            var lastPart = parts[parts.length-1];
+            if (isValueProperty(lastPart))
+                slot[lastPart] = [];
+            else
+                slot[lastPart] = [{"name":null,"id":null,"optional":true}];
+        })
         var envelope = {query:query};
         function handler(results) {
             fillInMQLProps(entity, results);
+            //don't show annoying loading symbols indefinitely if there's an error
+            $("#manualReconcile" + entity["/rec_ui/id"] + " .replaceme").empty();
         }
         $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {query:JSON.stringify(envelope)}, handler);
     }
@@ -240,39 +266,39 @@ function fetchMqlProps(entity) {
 
 function fillInMQLProps(entity, mqlResult) {
     var context = $("#manualReconcile" + entity["/rec_ui/id"]);
-    if (mqlResult["code"] != "/api/status/ok" || mqlResult["result"] == null) {
-        //don't show annoying loading symbols indefinitely if there's an error
-        $(".replaceme",context).empty();
-        console.error(mqlResult);
+    if (!mqlResult || mqlResult["code"] != "/api/status/ok" || mqlResult["result"] == null) {
+        error(mqlResult);
         return;
     }
 
     var result = mqlResult.result;
     var entity = $("tr." + idToClass(result.id),context);
-    $(".replaceme", entity).empty();
     
-    var props = result["/type/reflect/any_master"].concat(
-                result["/type/reflect/any_value"]).concat(
-                result["/type/reflect/any_reverse"]);
-    for (var i = 0; i < props.length; i++) {
-        var prop = props[i];
-        var link = prop.link;
-        if (link.master_property != undefined)
-            link = link.master_property.reverse_property;
-        var cell = $("td." + idToClass(link), entity);
-        if (prop.value != undefined)
-            cell.html(cell.html() + prop.value + " <br/>");
-        else
-            cell.html(cell.html() + freebaseLink(prop.id, prop.name) + "<br/>")
+    
+    for (var i = 0; i < mqlProps.length; i++) {
+        var cell = $("td." + idToClass(mqlProps[i]), entity).empty();
+        cell.append(displayValue(getChainedProperty(result, mqlProps[i])));
+        cell.removeClass("replaceme");
     }
 }
 
 function handleReconChoice(entity,freebaseId) {
     delete manualQueue[entity["/rec_ui/id"]];
     $("#manualReconcile" + entity['/rec_ui/id']).remove();
-    if (freebaseId != undefined)
+    if (freebaseId != undefined){
         entity.id = freebaseId;
+        canonicalizeFreebaseId(entity);
+    }
     addColumnRecCases(entity);
     updateUnreconciledCount();
     manualReconcile();
+}
+
+
+function canonicalizeFreebaseId(entity) {
+    var envelope = {query:{"myId:id":entity.id, "id":null}}
+    $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {query:JSON.stringify(envelope)}, function(results){
+        if (results && results.result && results.result.id)
+            entity.id = results.result.id
+    });
 }

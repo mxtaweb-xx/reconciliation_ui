@@ -1,17 +1,17 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-        "http://www.w3.org/TR/html4/loose.dtd">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
-    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
     <title>Reconciliation Service</title>
     
     <link rel="stylesheet" href="lib/dataTables/media/css/demos.css" type="text/css" media="screen" charset="utf-8">
     <link rel="stylesheet" href="lib/jquery.ui/themes/cupertino/ui.all.css" type="text/css" media="screen" title="Cupertino" charset="utf-8">
     <link rel="stylesheet" href="lib/suggest/freebase-controls.css" type="text/css" media="screen" charset="utf-8">
     <link rel="stylesheet" href="lib/suggest/jquery.freebase.minitopic.css" type="text/css" media="screen" charset="utf-8">
+    <link rel="stylesheet" href="lib/suggest/freebase.suggest.css" type="text/css" media="screen" charset="utf-8">
 
     <link rel="stylesheet" href="recon.css" type="text/css" media="screen" charset="utf-8">
- </head>
+</head>
 <body id="dt_example">
     <div id='main_app'>
         
@@ -20,11 +20,10 @@
         <!--    Ask for a spreadsheet        -->
         <div id="spreadsheetInput" class="container">
             <h3>Copy your spreadsheet here:</h3>
-            <textarea rows="15" cols="80" name="spreadsheet" id="spreadsheet"></textarea><br/>
+            <textarea rows="15" cols="80" name="spreadsheet" id="spreadsheet"></textarea><br>
             <button onclick="handleNewSpreadsheet()">Parse Spreadsheet</button>
             <button onclick="$('#spreadsheet')[0].value = sampleData">Sample Data</button>
             <button onclick="$('#spreadsheet')[0].value = complexData">Complex Sample</button>
-            <p/>
         </div>
         
         <!--    If the spreadsheet is ambiguous, ask for clarification     -->
@@ -36,10 +35,10 @@
               </button>
               <table>
                 <thead>
-                  <tr class='headers'></tr>
+                  <tr class='headers'><th></th></tr>
                 </thead>
                 <tbody>
-                
+                  <tr><td></td></tr>
                 </tbody>
               </table>
             </div>
@@ -50,10 +49,10 @@
               </button>
               <table>
                 <thead>
-                  <tr class='headers'></tr>
+                  <tr class='headers'><th></th></tr>
                 </thead>
                 <tbody>
-              
+                  <tr><td></td></tr>
                 </tbody>
               </table>
             </div>
@@ -64,7 +63,7 @@
             <h3>Does this look right?</h3>
             <div id="spreadsheetDiv" class="container">
             </div>
-            <br/>
+            <br>
             <button onclick='$("#spreadsheetInput").show();$("#spreadsheetPreview").hide()'>&lt; Back</button>
             <button style='float:right' onclick='continueToReconciliation();'>Continue &gt;</button>
         </div>
@@ -101,21 +100,22 @@
                 <div class="currentRecord">
                   <h4>Current Record:</h4>
                   <div class="recordVals">
-                  
+
                   </div>
                 </div>
                 
                 <div class="reconciliationCandidates">
                   <h4>Select one of these Freebase topics:</h4>
                   <table class='manualReconciliationChoices'>
-                    <thead></thead>
-                    <tbody></tbody>
+                    <thead><tr><th></th></tr></thead>
+                    <tbody><tr><td></td></tr></tbody>
                   </table>
+                  <button class="moreButton">More candidates &darr;</button><img src="spinner.gif" class="invisible loadingMoreCandidates">
                   <h4>Or:</h4>
                   <button class="skipButton otherSelection" name="">Skip This Item</button>
                   <button class="newButton otherSelection" name="None">Not in Freebase</button>
-                  <label for="find_topic">Search For Another Topic:</label>
-                  <input type="text" name="find_topic" class="find_topic">
+                  <label>Search For Another Topic:</label>
+                  <input type="text" class="find_topic">
                 </div>
                 <div class='clear'></div>
               </div>
@@ -123,16 +123,24 @@
           
 <!--      Review what's been reconciled so far      -->
           <div id='reviewScreen'>
-              <h3>Review these reconciliations:
+              <h3>Items reconciled so far:</h3>
+              <h5 class='subheading'>(items which have the exact same name are faded out)</h5>
               <table>
-                  <tr><th>Your Input</th><th>Freebase Topic</th></tr>
+                  <thead>
+                      <tr><th>Your Input</th><th>Freebase Topic</th></tr>
+                  </thead>
                   <tbody class='reconciliationsToReview'>
-                      
+                    <tr><td></td><td></td></tr> 
                   </tbody>
               </table>
+              
               <table class='invisible templates'>
+                  <tbody class='reconciliationsToReview'>
+                      <tr><td></td><td></td></tr> 
+                    </tbody>
               <tr class='reviewReconciledTemplate'><td class='candidateName'>Stevie wonder</td><td class='freebaseName'>Stevie Wonder</td></tr>
               <tr class='reviewNewTemplate'><td class='candidateName'>Stevie wonder</td><td>None - create a new one</td>
+              <tr class='reviewSkippedTemplate'><td class='candidateName'>Stevie wonder</td><td>Manually Skipped - not reconciled</td>
               </table>
           </div>
           
@@ -140,23 +148,21 @@
           <div id="spreadsheetRender" class="container">
               
               <h3>Copy your updated spreadsheet from here:</h3>
-              <textarea rows="15" cols="80" name="outputSpreadSheet" id="outputSpreadSheet"></textarea><br/>
-              <p/>
+              <textarea rows="15" cols="80" name="outputSpreadSheet" id="outputSpreadSheet"></textarea><br>
               
 
               <h3>Upload your data to Freebase:</h3>
               We've found <span class='triple_count'></span> assertions that you can upload.
-              <br/>
-              <div class="uploadLogin">
-                  <a href="http://spreadsheet.rictic.user.dev.freebaseapps.com/login">Login</a> to upload to freebase.  <button onClick='checkLogin()'>Refresh</button>
-              </div>
-              
-              <div class="uploadForm">
-                  <form action="http://spreadsheet.rictic.user.dev.freebaseapps.com/triplewriter" target="_blank" method="POST" accept-charset="utf-8">
-                      <input type="hidden" name="payload" value="" id="payload">
-                      <input type="submit" value="Upload">
-                  </form>
-              </div>
+              <br>
+              <form action="http://data.labs.freebase.com/freeq/prod/" target="_blank" method="POST" accept-charset="utf-8">
+                  <label for="username">Your Freebase username: </label><input type="text" name="user" value="/user/" id="user">
+                  <input type='hidden' name="action_type" value="LOAD_TRIPLE" id="action_type">
+                  <input type="hidden" name="operator" value="/user/spreadsheet_bot" id="operator">
+                  <input type="hidden" name="check_params" value="false" id="check_params">
+                  <input type="hidden" name="graphport" value="sandbox" id="graphport">
+                  <input type="hidden" name="payload" value="" id="payload">
+                  <input type="submit" value="Upload">
+              </form>
           </div>
       </div>
       
@@ -171,11 +177,13 @@
     </div>
 
     <div id="optionsPanel" class='invisible container'>
-      <label for="reconciliation_url">Reconciliation URL: </label><input type="text" name="reconciliation_url" value="" id="reconciliation_url" size='60'><br/>
-      <label for="freebase_url">Freebase URL: </label><input type="text" name="freebase_url" value="" id="freebase_url" size='60'><br/>
+      <label for="reconciliation_url">Reconciliation URL: </label><input type="text" name="reconciliation_url" value="" id="reconciliation_url" size='60'><br>
+      <label for="freebase_url">Freebase URL: </label><input type="text" name="freebase_url" value="" id="freebase_url" size='60'><br>
       <button onClick='$("#optionsPanel").hide();$("#main_app").show();'>Ok</button>
     </div>
     
+    
+    <div id="miniTopicFloater" class="invisible" style="position:absolute;"></div>
     
      <script type="text/javascript" language="javascript" charset="utf-8" src="lib/json2.js"></script>
      <script type="text/javascript" language="javascript" charset="utf-8" src="lib/jquery.js"></script>
@@ -184,6 +192,7 @@
      <script type="text/javascript" language="javascript" charset="utf-8" src="lib/jquery.ui/ui/ui.progressbar.js"></script>
      <script type="text/javascript" language="javascript" charset="utf-8" src="lib/dataTables/media/js/jquery.dataTables.js"></script>
      <script type="text/javascript" language="javascript" charset="utf-8" src="lib/jquery.history.js"></script>
+     <script type="text/javascript" language="javascript" charset="utf-8" src="lib/jquery.event.hover.js"></script>
 
      <script type="text/javascript" language="javascript" charset="utf-8" src="lib/suggest/jquery.freebase.minitopic.js"></script>
      <script type="text/javascript" language="javascript" charset="utf-8" src="lib/suggest/freebase.suggest.js"></script>
@@ -195,6 +204,7 @@
      <script type="text/javascript" language="javascript" charset="utf-8" src="utility.js"></script>
      <script type="text/javascript" language="javascript" charset="utf-8" src="sampledata.js"></script>
      <script type="text/javascript" language="javascript" charset="utf-8" src="complexdata.js"></script>
+     
      <script type="text/javascript" language="javascript" charset="utf-8">
          function handleNewSpreadsheet()
          {
@@ -212,7 +222,7 @@
          function showAmbiguousRowPrompt(startingRowIdx) {
              var headersHTML = "";
              for (var i = 0; i < headers.length; i++)
-                 headersHTML += "<th>" + headers[i] + "</th>";
+                 headersHTML += "<th>" + headers[i] + "<\/th>";
              $("#formatDisambiguation table thead tr.headers").html(headersHTML);
 
              var rowHTML = function(row){
@@ -225,10 +235,10 @@
                      else
                          for (var j = 0; j < val.length; j++)
                              if (val[j] != undefined)
-                               html += val[j] + "<br/>";
-                     html += "</td>";
+                               html += val[j] + "<br>";
+                     html += "<\/td>";
                  }
-                 return html + "</tr>";
+                 return html + "<\/tr>";
              } 
 
              var separateRows = rowHTML(rows[startingRowIdx]);
@@ -282,7 +292,7 @@
              updateUnreconciledCount();
              spreadSheetData["bAutoWidth"] = false
              spreadSheetData["bSort"] = false
-             $("#spreadsheetDiv").html('<table class="display" id="spreadsheetTable"></table>');
+             $("#spreadsheetDiv").html('<table class="display" id="spreadsheetTable"><\/table>');
              $('#spreadsheetTable').dataTable(spreadSheetData)
              $('#spreadsheetInput').hide();
              $('#spreadsheetPreview').show();
@@ -294,13 +304,13 @@
              tabs.bind("tabsselect", function(event, ui) {
                  if(ui.index == 0)       manualReconcile();
                  else if(ui.index == 1)  renderReviews();
-                 else if (ui.index == 2) renderSpreadsheet();
+                 else if (ui.index == 2) onDisplayOutputScreen();
              });
              $("#tabs").show();
              tabs.tabs("select", 0);
              spreadsheetParsed(beginAutoReconciliation);
          }
-
+         var reconciliationBegun = false;
          $(document).ready(function() {
              jQuery.ajaxSettings.cache = true; //keeps jquery from inserting cache-busting timecodes into json requests
 
@@ -317,6 +327,11 @@
              if (window.location.hash != "")
                window.location.hash = ""
          		$.historyInit(displayReconChoices);
+     	     window.onbeforeunload = function() {
+     	         if (reconciliationBegun)
+                     return "You may have unsaved changes.  Make sure to copy your updated spreadsheet or upload your data to Freebase on the Retrieve Your Data tab.";
+             };
+             
          });
 
          function updateUnreconciledCount() {

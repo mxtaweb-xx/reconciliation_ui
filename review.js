@@ -1,13 +1,18 @@
 function renderReviews() { 
-    var container = $('.reconciliationsToReview').hide().empty();
+    var container = $('.templates .reconciliationsToReview').clone().empty();
+    $(".reconciliationsToReview:visible").replaceWith(container);
     var newTemplate = $(".templates .reviewNewTemplate");
+    var skippedTemplate = $(".templates .reviewSkippedTemplate");
     var reconciledTemplate = $(".templates .reviewReconciledTemplate");
-    $.each(entities, function(idx,entity){ 
+    politeEach(entities, function(idx,entity){ 
+        if (entity["/rec_ui/is_cvt"] || null == entity.id || $.isArray(entity.id))
+            return;
+
         var template;
-        if (entity.id === null || entity.id === undefined || entity.id === "")
-            return
         if (entity.id === "None")
             template = newTemplate.clone();
+        else if(entity.id === "")
+            template = skippedTemplate.clone();
         else
             template = reconciledTemplate.clone();
         
@@ -20,10 +25,10 @@ function renderReviews() {
             })
             freebaseName = freebaseName || entity['/rec_ui/freebase_name'][0];
         }
-        freebaseName = freebaseName || entity.id;
+        freebaseName = "" + (freebaseName || entity.id);
         
-        $(".freebaseName", template).html("<a href='"+freebase_url+"/view/"+entity.id+"'>"+freebaseName+"</a>");
-        if (textValue(entity).toLowerCase() === freebaseName.toLowerCase())
+        $(".freebaseName", template).html(freebaseLink(entity.id, freebaseName));
+        if (freebaseName && textValue(entity).toLowerCase() === freebaseName.toLowerCase())
             $(".freebaseName", template).addClass("identicalMatch");
             
         $(".internalLink", template).click(function(val) {
@@ -31,5 +36,4 @@ function renderReviews() {
             $("#tabs > ul").tabs("select",0);})
         container.append(template);
     });
-    container.show();
 }

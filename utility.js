@@ -80,7 +80,7 @@ function arrayDifference(source, toRemove) {
 
 //Uniquely maps MQL ids to valid CSS class names
 function idToClass(idName) {
-    return idName.replace(/\//g,"_");
+    return idName.replace(/\//g,"_").replace(":","___");
 }
 
 //Is value in array?
@@ -112,12 +112,16 @@ function textValue(value) {
 }
 
 function displayValue(value) {
-    if ($.isArray(value))
-        return $.map(value, displayValue).join("<br/>");
+    if ($.isArray(value)){
+        var result = node("span");
+        for (var i = 0; i < value.length; i++)
+            result.append(displayValue(value[i])).append("<br>");
+        return result;
+    }
     if (value == undefined || value == null)
         return "";
     if (value.id != undefined && value.id != "None")
-        return freebaseLink(value.id, textValue(value["/type/object/name"]));
+        return miniTopicFloater($(freebaseLink(value.id, textValue(value["/type/object/name"] || value.name))), value.id);
     return textValue(value);
 }
 
@@ -125,14 +129,15 @@ function freebaseLink(id, text) {
     return "<a target='_blank' href='"+freebase_url+"/view"+id+"'>" + text + "</a>"
 }
 
-function addColumnRecCases(row) {
-    if (! row["/rec_ui/column_val"]) {
+function addColumnRecCases(entity) {
+    if (entity["/rec_ui/toplevel_entity"]) {
         var autoQueueLength = automaticQueue.length;
         for (var i = 0; i < mqlProps.length; i++) {
-            var values = $.makeArray(row[mqlProps[i]]);
+            var values = $.makeArray(getChainedProperty(entity,mqlProps[i]));
             for (var j = 0; j < values.length; j++) {
-                if (values[j]['/type/object/name'] != undefined){
-                    automaticQueue.push(values[j]);
+                if (values[j] && values[j]['/type/object/name'] != undefined){
+                    if (!values[j].id)
+                        automaticQueue.push(values[j]);
                     totalRecords++;
                 }
             }
@@ -140,6 +145,13 @@ function addColumnRecCases(row) {
         if (autoQueueLength == 0)
             beginAutoReconciliation();
     }
+}
+
+function isValueProperty(propName) {
+    assert(mqlMetadata[propName], "mqlMetadata of " + propName + " is " + mqlMetadata[propName]);
+    if (mqlMetadata[propName])
+        return isValueType(mqlMetadata[propName].expected_type);
+    return undefined;
 }
 
 function isValueType(type) {
@@ -196,18 +208,106 @@ function partition(array, predicate) {
     return [good,bad];
 }
 
+function all(array, predicate) {
+    if (!predicate) predicate = identity;
+    for (var i = 0; i < array.length; i++)
+        if (!predicate(array[i]))
+            return false;
+    return true;
+}
+
+function any(array, predicate) {
+    if (!predicate) predicate = identity;
+    for (var i = 0; i < array.length; i++)
+        if (predicate(array[i]))
+            return true;
+    return false;
+}
+
+function none(array, predicate) {
+    return !any(array,predicate);
+}
+
+function identity(value) {return value;}
+
+function getChainedProperty(entity, prop) {
+    var slots = [entity];
+    $.each(prop.split(":"), function(_,part) {
+        var newSlots = [];
+        $.each(slots, function(_,slot) {
+            newSlots = newSlots.concat($.grep($.makeArray(slot[part]),identity))
+        })
+        slots = newSlots;
+    });
+    if (slots === []) return undefined;
+    return slots;
+}
+
+var miniTopicFloaterEl = $("#miniTopicFloater");
+function miniTopicFloater(element, id) {
+    element.bind("hover",function() {
+        miniTopicFloaterEl.empty().freebaseMiniTopic(id).show();
+    })
+    element.bind("hoverend", function() {
+        miniTopicFloaterEl.hide();
+    })
+    element.mousemove(function(e){
+        miniTopicFloaterEl.css({
+            top: (e.pageY + 15) + "px",
+            left: (e.pageX + 15) + "px"
+        });
+    });
+    return element;
+}
+
+function time() {
+    return new Date().valueOf();
+}
+
+function politeEach(array, f, callback) {
+    var index = 0;
+    var startTime = time();
+    function iterate() {
+        while(index < array.length) {
+            f(index, array[index]);
+            index++;
+            if (time() > startTime + 100){
+                info("yielding to UI thread");
+                startTime = time();
+                setTimeout(iterate, 0);
+                return;
+            }
+        }
+        if (callback) callback();
+    }
+    iterate();
+}
+
+function politeMap(array, f, callback) {
+    var result = [];
+    politeEach(array, function(index, value) {
+        result[index] = f(index,value);
+    }, function() {callback(result);});
+}
 
 /*
 ** create debugging tools if they're not available
 */
-
+function logger(log_level) {
+    if (console[log_level])
+        return function(message) {return console[log_level](message);};
+    return function(message){/*node("div",JSON.stringify(message)).appendTo("#" + log_level + "Log");*/ return message;}
+}
 
 //These messages don't go anywhere at the moment, but it'd be very easy to create the
 // places where they'd go
-if (window.console == undefined)
-    window.console = {
-        assert  :function(bool,message){if (!bool) console.error(message)},
-        error   :function(message){/*node("div",JSON.stringify(message)).appendTo("#errors");*/ return message;},
-        warn    :function(message){/*node("div",JSON.stringify(message)).appendTo("#warnings");*/ return message;},
-        log     :function(message){/*node("div",JSON.stringify(message)).appendTo("#log");*/ return message;}        
-    };
+var console = window.console || {};
+var error  = logger("error");
+var warn   = logger("warn" );
+var log    = logger("log"  );
+var info   = logger("info" );
+var assert = function() {
+    if (console.assert)
+        return function(bool, message) {return console.assert(bool,message);};
+    return function(bool,message){if (!bool) error(message)};
+}()

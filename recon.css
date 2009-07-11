@@ -127,8 +127,7 @@ a.optionsButton {
 
 .currentRecord {
     float: left;
-    border: 1px solid #999;
-    background-color: #dde;
+    border: 2px solid #999;
     margin-top: 30px;
     padding-left: 5px;
     padding-right: 5px;
@@ -144,6 +143,8 @@ a.optionsButton {
     margin-left: 12px;
     margin-top: 4px;
     margin-bottom: 8px;
+    font-size: 110%;
+    font-weight: bold;
 }
 
 .reconciliationCandidates {
@@ -167,4 +168,21 @@ label.findItem {
     opacity:0.5;  
     filter:alpha(opacity=50);  
     -moz-opacity:0.5;
+}
+
+#miniTopicFloater {
+    background-color: #fff;
+    border: 2px solid #999;
+}
+#miniTopicFloater .fbase-mt-nav {
+    display:none;
+}
+
+#miniTopicFloater .fbase-mt-box {
+    border:none;
+}
+
+.manualReconciliationChoices td img {
+    max-width:  100px;
+    max-height: 100px;
 }

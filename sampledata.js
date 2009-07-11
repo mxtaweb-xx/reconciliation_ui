@@ -410,7 +410,7 @@ var sampleData =
 "Cobra\t/film/film\tJoseph Henabery\n" +
 "Army of One\t/film/film\tVic Armstrong\n" +
 "Jeene Ki Raah\t/film/film\tL.V. Prasad\n" +
-"C.I.D\t/film/film\tRaj Khosla\n" +
+"C.I.D.\t/film/film\tRaj Khosla\n" +
 "Darr\t/film/film\tYash Chopra\n" +
 "Iron Monkey\t/film/film\t\n" +
 "Saagar\t/film/film\tRamesh Sippy\n" +

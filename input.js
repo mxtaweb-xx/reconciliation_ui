@@ -83,6 +83,13 @@ function parseSpreadsheet(spreadsheet) {
                     continue;
                 }
                 
+                if (c == ""){
+                    error("unexpected end of input, no closing double-quote marks found");
+                    fields.push(field);
+                    position+=1;
+                    return fields;
+                }
+                
                 //just a character in the quoted field
                 field += c;
                 position++;
@@ -135,12 +142,13 @@ function parseSpreadsheet(spreadsheet) {
         return true;
     });
     rows = [];
-    var rowHeaders  = simpleHeaders.slice();
-    var rowMqlProps = mqlProps.slice();
     while(spreadsheet.charAt(position) != ""){
+        var rowHeaders  = headers.slice();
+        var rowMqlProps = mqlProps.slice();
         var rowArray = parseLine();
         var entity = newEntity({"/rec_ui/headers": rowHeaders,
-                                "/rec_ui/mql_props": rowMqlProps});
+                                "/rec_ui/mql_props": rowMqlProps,
+                                "/rec_ui/toplevel_entity": true});
         for (var i=0; i < headers.length; i++){
             var val = rowArray[i];
             if (rowArray[i] === "")
@@ -189,11 +197,26 @@ function getAmbiguousRowIndex(from) {
 
 function spreadsheetParsed(callback) {
     function isUnreconciled(entity) {
-        return contains([undefined,null,"indeterminate",""], entity["id"]);
+        if (entity["/rec_ui/is_cvt"])
+            return false;
+        return contains([undefined,null,"indeterminate",""], entity.id);
     }
-    totalRecords = rows.length;
-    automaticQueue = $.grep(rows,isUnreconciled);
-    fetchMQLPropMetadata(callback);
+    function new_callback() {
+        objectifyRows(function() {
+            totalRecords = rows.length;
+            var rec_partition = partition(rows,isUnreconciled);
+            automaticQueue = rec_partition[0];
+            $.each(rec_partition[1],function(_,reconciled_row){
+                addColumnRecCases(reconciled_row);
+            });
+            $(".initialLoadingMessage").hide();
+            callback();
+        });
+    }
+    if (mqlProps.length === 0)
+        new_callback();
+    else
+        fetchMQLPropMetadata(new_callback);
 }
 
 function fetchMQLPropMetadata(callback) {
@@ -204,6 +227,7 @@ function fetchMQLPropMetadata(callback) {
                 "id" : null
             },
             "reverse_property" : null,
+            "master_property"  : null,
             "type" : "/type/property",
             "id" : prop
         }
@@ -214,7 +238,7 @@ function fetchMQLPropMetadata(callback) {
             envelope[simpleProp.replace(/\//g,'Z')] = {"query": getQuery(simpleProp)};
         })
     })
-    console.log(envelope);
+    log(envelope);
     function handler(results) {
         handleMQLPropMetadata(results);
         callback();
@@ -223,42 +247,41 @@ function fetchMQLPropMetadata(callback) {
 }
 
 function handleMQLPropMetadata(results) {
-    console.assert(results.code == "/api/status/ok", results);    
+    assert(results.code == "/api/status/ok", results);    
     $.each(mqlProps, function(_,complexProp){
         var partsSoFar = [];
         $.each(complexProp.split(":"), function(_, mqlProp) {
             var result = results[mqlProp.replace(/\//g,'Z')];
             partsSoFar.push(mqlProp);
             if (result.code != "/api/status/ok"){
-                console.error(result);
+                error(result);
                 return
             }
             result = result.result;
-            mqlMetadata[result['id']] = result;
-            if (!isValueType(result.expected_type) && !contains(headers,result.id + ":id" ))
-//                 insertAfter(headers, result.id, result.id + ":id");
-                headers.push(partsSoFar.join(":") + ":id");
-            if (mqlMetadata[result.expected_type] == undefined)
-                mqlMetadata[result.expected_type] = {reverse_property: result.id};
+            result.inverse_property = result.reverse_property || result.master_property;
+            mqlMetadata[result.id] = result;
+            var idColumn = partsSoFar.concat("id").join(":");
+            if (!isValueProperty(result.id) && !contains(headers,idColumn))
+                headers.push(idColumn);
+            if (result.expected_type && mqlMetadata[result.expected_type.id] == undefined)
+                mqlMetadata[result.expected_type.id] = {inverse_property: result.id};
         });
     })
-    objectifyRows();
-    $(".initialLoadingMessage").hide();
 }
 
-function objectifyRows() {
-    $.each(rows, function(_,row) {
+function objectifyRows(onComplete) {
+    politeEach(rows, function(_,row) {
         for (var prop in row) {
             function objectifyRowProperty(value) {
-                var result = newEntity({'/type/object/name':row[meta.id],
+                var result = newEntity({'/type/object/name':value,
                               '/type/object/type':meta.expected_type.id,
                               '/rec_ui/headers': ['/type/object/name','/type/object/type'],
                               '/rec_ui/mql_props': [],
-                              "/rec_ui/column_val": true});
-                if (meta.reverse_property != null){
-                    result[meta.reverse_property] = row;
-                    result['/rec_ui/headers'].push(meta.reverse_property);
-                    result['/rec_ui/mql_props'].push(meta.reverse_property);
+                              });
+                if (meta.inverse_property != null){
+                    result[meta.inverse_property] = row;
+                    result['/rec_ui/headers'].push(meta.inverse_property);
+                    result['/rec_ui/mql_props'].push(meta.inverse_property);
                 }
                 return result;
             }
@@ -266,10 +289,11 @@ function objectifyRows() {
             var meta = mqlMetadata[prop];
             if (meta == undefined || isValueType(meta.expected_type))
                 continue;
-            if ($.isArray(row[prop]))
-                row[prop] = $.map(row[prop], objectifyRowProperty)
-            else
-                row[prop] = objectifyRowProperty(row[prop]);
+            var newProp = [];
+            for (var i = 0; i < row[prop].length; i++)
+                if (row[prop][i])
+                    newProp[i] = objectifyRowProperty(row[prop][i])
+            row[prop] = newProp
         }
         $.each(complexHeaders, function(_,complexHeader) {
             var valueArray = row[complexHeader];
@@ -277,25 +301,24 @@ function objectifyRows() {
             var slot;
             function cvtEntity(meta, parent) {
                 var cvt = newEntity({"/type/object/type":meta.expected_type.id,
-                                     "/rec_ui/is_cvt":true});
-                if (meta.reverse_property != null)
-                    cvt[meta.reverse_property] = parent;
+                                     "/rec_ui/is_cvt":true,
+                                     "/rec_ui/parent":parent,
+                                     "/rec_ui/mql_props" :[]});
+                if (meta.inverse_property != null){
+                    cvt[meta.inverse_property] = parent;
+                    cvt["/rec_ui/mql_props"].push(meta.inverse_property);
+                }
                 return cvt;
             }
             var firstPart = parts[0];
             $.each(valueArray, function(i,value) {
                 if (value === undefined)
                     return; //read as continue
-                var cvt = cvtEntity(mqlMetadata[firstPart], row);
-                if (firstPart in row){
-                    if (row[firstPart][i] === undefined)
-                        row[firstPart][i] = cvt;
-                    else
-                        cvt = row[firstPart][i];
-                }
-                else
-                    row[firstPart] = [cvt];
-                slot = cvt;
+                if (!(firstPart in row))
+                    row[firstPart] = [];
+                if (row[firstPart][i] === undefined)
+                    row[firstPart][i] = cvtEntity(mqlMetadata[firstPart], row);;
+                slot = row[firstPart][i];
                 $.each(parts.slice(1,parts.length-1), function(_,part) {
                     if (!part in slot)
                         slot[part] = cvtEntity(mqlMetadata[part], slot);
@@ -303,14 +326,29 @@ function objectifyRows() {
                 });
                 var lastPart = parts[parts.length-1];
                 var meta = mqlMetadata[lastPart];
-                if (meta === undefined)
+                if (meta === undefined && lastPart !== "id")
                     return; //if we don't know what it is, leave it as it is
-                if (isValueType(meta.expected_type))
+                if (lastPart === "id" || isValueProperty(lastPart))
                     slot[lastPart] = value;
-                else
-                    slot[lastPart] = newEntity({"/type/object/type":meta.expected_type.id,
-                                                "/type/object/name":value})
-                slot[parts[parts.length-1]] = value;
+                else {
+                    var new_entity = newEntity({"/type/object/type":meta.expected_type.id,
+                                                "/type/object/name":value,
+                                                '/rec_ui/headers': ['/type/object/name','/type/object/type'],
+                                                '/rec_ui/mql_props': [],
+                                                });
+                    if (meta.inverse_property) {
+                        new_entity[meta.inverse_property] = slot;
+//                         cvt["/rec_ui/mql_props"].push(meta.inverse_property);
+                        var reversedParts = $.map(parts.slice().reverse(), function(part) {return (mqlMetadata[part] && mqlMetadata[part].inverse_property) || false;});
+                        if (all(reversedParts)){
+                            new_entity["/rec_ui/mql_props"].push(reversedParts.join(":"));
+                            new_entity["/rec_ui/headers"].push(reversedParts.join(":"));
+                        }
+                            
+                    }
+                    slot[lastPart] = new_entity;
+                }
+                    
             });
             delete row[complexHeader];
         });
@@ -320,28 +358,32 @@ function objectifyRows() {
             the reconciliation service.
             Supports self referential objects (though not self referential arrays)*/
         function cleanup(obj, closed) {
+            //Only interested in Arrays and objects
+            if (typeof(obj) != "object")
+                return obj;
+            
+            //setup a closed list to handle mutually recursive data structures
             if (closed === undefined) closed = {};
             if (closed[obj])
-                return obj; //already processed this object
-            if (typeof(obj) === "String")
-                return obj
-            else if (obj === undefined)
-                return obj
-            else if ($.isArray(obj)) {
+                return obj; //we've seen this object before
+            
+            if ($.isArray(obj)) {
                 var arr = filter(obj, function(val){return val !== undefined});
                 if (arr.length === 1)
                     return cleanup(arr[0], closed);
                 else
                     return $.map(arr, function (val) {return cleanup(val,closed);});
             }
+            
             closed[obj] = true;
             for (var key in obj){
+                if (key.match(/^\/rec_ui\//)) continue; //don't touch our own internal properties
                 obj[key] = cleanup(obj[key], closed);
-                if (obj[key] == undefined || ($.isArray(obj[key]) && obj[key].length == 0))
-                    delete obj[key];
             }
             return obj
         }
         cleanup(row);
-    });
+        if ($.isArray(row.id))
+            row.id = row.id[0];
+    }, onComplete);
 }
