@@ -182,7 +182,7 @@ function renderReconChoices(entity) {
     $('.reconciliationCandidates table tbody tr:odd', template).addClass('odd');
     $('.reconciliationCandidates table tbody tr:even', template).addClass('even');
     $(".find_topic", template)
-        .freebaseSuggest()
+        .suggest()
         .bind("fb-select", function(e, data) { 
           entity['/rec_ui/freebase_name'] = $.makeArray(data.name);
           handleReconChoice(entity, data.id);
