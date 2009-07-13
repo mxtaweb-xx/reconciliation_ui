@@ -1,1 +1,6 @@
-java -jar JsTestDriver-1.0b.jar --tests all --verbose
+ps -ax | grep "JsTestDriver.jar * --port" > /dev/null
+if [[ $? != 0 ]]; then
+  echo "Starting server"
+  ./testServer.sh
+fi
+java -jar JsTestDriver.jar --tests all --verbose

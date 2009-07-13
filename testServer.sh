@@ -1,1 +1,1 @@
-nohup java -jar JsTestDriver-1.0b.jar --port 4224 &>/dev/null &
+nohup java -jar JsTestDriver.jar --port 4224 &>/dev/null &
