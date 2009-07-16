@@ -122,7 +122,7 @@ function displayValue(value) {
         var result = node("div");
         displayValues = $.map(value, displayValue);
         var overflowCutoff = 4;
-        if (displayValues.length > overflowCutoff){
+        if (displayValues.length > overflowCutoff+1){
             for (var i = 0; i < overflowCutoff; i++)
                 result.append(displayValues[i]).append("<br>");
             var overflowContainer = node("div", {"class":"overflowContainer"}).appendTo(result);
