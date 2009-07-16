@@ -35,6 +35,12 @@ function onDisplayOutputScreen() {
     renderSpreadsheet();
     prepareTriples();
 }
+function onHideOutputScreen() {
+    if (spreadsheetRendererYielder)
+        spreadsheetRendererYielder.dispose();
+    if (tripleGetterYielder)
+        tripleGetterYielder.dispose();
+}
 
 var triplewriter_service = "http://spreadsheet.rictic.user.dev.freebaseapps.com/"
 
@@ -88,10 +94,9 @@ function encodeRow(row) {
     return $.map(lines,encodeLine);
 }
 
-var nonce = 0;
+var spreadsheetRendererYielder;
 function renderSpreadsheet() {
-    nonce++;
-    var nonceValue = nonce;
+    spreadsheetRendererYielder = new Yielder();
     var lines = [];
     lines.push(encodeLine(headers));
     $("#outputSpreadSheet")[0].value = "One moment, rendering...";
@@ -100,9 +105,8 @@ function renderSpreadsheet() {
         lines = lines.concat(encodeRow(row));
     },
     function() {
-        if (nonceValue === nonce)
-            $("#outputSpreadSheet")[0].value = lines.join("\n");
-    })
+        $("#outputSpreadSheet")[0].value = lines.join("\n");
+    }, spreadsheetRendererYielder);
 }
 
 function prepareTriples() {
@@ -113,7 +117,9 @@ function prepareTriples() {
     });
 }
 
+var tripleGetterYielder;
 function getTriples(rows, callback) {
+    tripleGetterYielder = new Yielder();
     var triples = [];
     function isValidID(id) {
         if ($.isArray(id))
@@ -153,7 +159,7 @@ function getTriples(rows, callback) {
                     triples.push(getID(subject) + " " + predicate + " " + getID(object));
             })
         });
-    }, function() {callback(triples)});
+    }, function() {callback(triples)}, tripleGetterYielder);
 }
 
 function checkLogin() {

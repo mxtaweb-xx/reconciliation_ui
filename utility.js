@@ -266,25 +266,8 @@ function miniTopicFloater(element, id) {
     return element;
 }
 
-function time() {
-    return new Date().valueOf();
-}
-
-function Yielder() {
-    this.startTime = time();
-    this.yield = function(continueFunction) {
-        if (time() <= this.startTime + 100)
-            return false;
-        
-        info("yielding to UI thread");
-        this.startTime = time();
-        setTimeout(continueFunction, 0);
-        return true;
-    }
-}
-
-function politeEach(array, f, callback) {
-    var yielder = new Yielder();
+function politeEach(array, f, callback, yielder) {
+    yielder = yielder || new Yielder();
     var index = 0;
     function iterate() {
         while(index < array.length) {
@@ -298,11 +281,12 @@ function politeEach(array, f, callback) {
     iterate();
 }
 
-function politeMap(array, f, callback) {
+function politeMap(array, f, callback, yielder) {
+    yielder = yielder || new Yielder();
     var result = [];
     politeEach(array, function(index, value) {
         result[index] = f(index,value);
-    }, function() {callback(result);});
+    }, function() {callback(result);}, yielder);
 }
 
 /*

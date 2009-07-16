@@ -134,9 +134,6 @@
               </table>
               
               <table class='invisible templates'>
-                  <tbody class='reconciliationsToReview'>
-                      <tr><td></td><td></td></tr> 
-                    </tbody>
               <tr class='reviewReconciledTemplate'><td class='candidateName'>Stevie wonder</td><td class='freebaseName'>Stevie Wonder</td></tr>
               <tr class='reviewNewTemplate'><td class='candidateName'>Stevie wonder</td><td>None - create a new one</td>
               <tr class='reviewSkippedTemplate'><td class='candidateName'>Stevie wonder</td><td>Manually Skipped - not reconciled </td>
@@ -202,6 +199,7 @@
      <script type="text/javascript" language='javascript' charset="utf-8" src="review.js"></script>
      <script type="text/javascript" language="javascript" charset="utf-8" src="output.js"></script>
      <script type="text/javascript" language="javascript" charset="utf-8" src="utility.js"></script>
+     <script type="text/javascript" language="javascript" charset="utf-8" src="yielder.js"></script>
      <script type="text/javascript" language="javascript" charset="utf-8" src="sampledata.js"></script>
      <script type="text/javascript" language="javascript" charset="utf-8" src="complexdata.js"></script>
      
@@ -293,14 +291,22 @@
              $('#spreadsheetInput').hide();
              $('#spreadsheetPreview').show();
          }
+         var previousSelectedTab = 0;
          function continueToReconciliation() {
              $("#spreadsheetPreview").hide();
              var tabs = $("#tabs > ul");
              tabs.tabs();
              tabs.bind("tabsselect", function(event, ui) {
-                 if(ui.index == 0)       manualReconcile();
-                 else if(ui.index == 1)  renderReviews();
-                 else if (ui.index == 2) onDisplayOutputScreen();
+                 switch(previousSelectedTab){
+                   case 1: onHideRenderScreen(); break;
+                   case 2: onHideOutputScreen(); break;
+                 }
+                 switch(ui.index){
+                   case 0: manualReconcile(); break;
+                   case 1: onDisplayRenderScreen(); break;
+                   case 2: onDisplayOutputScreen(); break;
+                 }
+                 previousSelectedTab = ui.index;
              });
              $("#tabs").show();
              tabs.tabs("select", 0);
