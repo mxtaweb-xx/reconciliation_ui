@@ -1,6 +1,16 @@
-function renderReviews() { 
-    var container = $('.templates .reconciliationsToReview').clone().empty();
-    $(".reconciliationsToReview:visible").replaceWith(container);
+function onDisplayRenderScreen() {
+    renderReviews();
+}
+
+function onHideRenderScreen() {
+    if (renderYielder)
+        renderYielder.dispose();
+}
+
+var renderYielder;
+function renderReviews() {
+    renderYielder = new Yielder();
+    var container = $('.reconciliationsToReview').empty();
     var newTemplate = $(".templates .reviewNewTemplate");
     var skippedTemplate = $(".templates .reviewSkippedTemplate");
     var reconciledTemplate = $(".templates .reviewReconciledTemplate");
@@ -9,12 +19,11 @@ function renderReviews() {
             return;
 
         var template;
-        if (entity.id === "None")
-            template = newTemplate.clone();
-        else if(entity.id === "")
-            template = skippedTemplate.clone();
-        else
-            template = reconciledTemplate.clone();
+        switch(entity.id){
+          case "None": template = newTemplate.clone(); break;
+          case ""    : template = skippedTemplate.clone(); break;
+          default    : template = reconciledTemplate.clone(); break;
+        }
         
         $(".candidateName",template).html("<a class='internalLink' href='#" + entity['/rec_ui/id'] + "'>" + textValue(entity) + "</a>");
         var freebaseName = null;
@@ -35,5 +44,5 @@ function renderReviews() {
             $.historyLoad(entity["/rec_ui/id"]);
             $("#tabs > ul").tabs("select",0);})
         container.append(template);
-    });
+    }, undefined, renderYielder);
 }

@@ -30,8 +30,14 @@
 **  Misc utility functions
 */
 
-var entities = [];
-var internalIDCounter = 0;
+var entities;
+var internalIDCounter;
+function resetEntities() {
+    entities = [];
+    internalIDCounter = 0;
+}
+resetEntities();
+
 function newEntity(initialVals) {
     var result = {"/rec_ui/id":internalIDCounter++}
     entities[result["/rec_ui/id"]] = result;
@@ -272,34 +278,28 @@ function unique(array) {
     }
     return result;
 }
-function time() {
-    return new Date().valueOf();
-}
 
-function politeEach(array, f, callback) {
+function politeEach(array, f, callback, yielder) {
+    yielder = yielder || new Yielder();
     var index = 0;
-    var startTime = time();
     function iterate() {
         while(index < array.length) {
             f(index, array[index]);
             index++;
-            if (time() > startTime + 100){
-                info("yielding to UI thread");
-                startTime = time();
-                setTimeout(iterate, 0);
+            if (yielder.yield(iterate))
                 return;
-            }
         }
         if (callback) callback();
     }
     iterate();
 }
 
-function politeMap(array, f, callback) {
+function politeMap(array, f, callback, yielder) {
+    yielder = yielder || new Yielder();
     var result = [];
     politeEach(array, function(index, value) {
         result[index] = f(index,value);
-    }, function() {callback(result);});
+    }, function() {callback(result);}, yielder);
 }
 
 /*
@@ -313,7 +313,8 @@ function logger(log_level) {
 
 //These messages don't go anywhere at the moment, but it'd be very easy to create the
 // places where they'd go
-var console = window.console || {};
+if (!window.console)
+    var console = {};
 var error  = logger("error");
 var warn   = logger("warn" );
 var log    = logger("log"  );
