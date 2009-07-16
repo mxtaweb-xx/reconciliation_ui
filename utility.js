@@ -119,9 +119,20 @@ function textValue(value) {
 
 function displayValue(value) {
     if ($.isArray(value)){
-        var result = node("span");
-        for (var i = 0; i < value.length; i++)
-            result.append(displayValue(value[i])).append("<br>");
+        var result = node("div");
+        displayValues = $.map(value, displayValue);
+        var overflowCutoff = 4;
+        if (displayValues.length > overflowCutoff){
+            for (var i = 0; i < overflowCutoff; i++)
+                result.append(displayValues[i]).append("<br>");
+            var overflowContainer = node("div", {"class":"overflowContainer"}).appendTo(result);
+            for (var i = overflowCutoff; i < displayValues.length; i++)
+                overflowContainer.append(displayValues[i]).append("<br>");
+            var showMoreLink = node("a","More &darr;",{"class":"expandOverflow",onclick:function(){overflowContainer.show();showMoreLink.hide();}}).appendTo(result);
+        }
+        else
+            for (var i = 0; i < value.length; i++)
+                result.append(displayValues[i]).append("<br>");
         return result;
     }
     if (value == undefined || value == null)

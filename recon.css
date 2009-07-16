@@ -190,3 +190,11 @@ label.findItem {
 .view_source {
     margin-left: 10px;
 }
+
+.overflowContainer {
+    display: none;
+}
+
+.expandOverflow {
+    cursor: pointer;
+}

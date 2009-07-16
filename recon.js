@@ -224,7 +224,7 @@ function renderCandidate(result, mqlProps, entity) {
     }
 
     
-    tableRow.append(node("td",result["type"].join("<br/>")));
+    tableRow.append(node("td",displayValue(result.type)));
     
     for(var j = 0; j < mqlProps.length; j++)
         tableRow.append(
