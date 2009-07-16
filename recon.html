@@ -208,16 +208,12 @@
      <script type="text/javascript" language="javascript" charset="utf-8">
          function handleNewSpreadsheet()
          {
-             parseSpreadsheet($('#spreadsheet')[0].value)
-             //initialize some tracking variables
-
-             $("#spreadsheetInput").hide();
-
-             var ambiguityStart = getAmbiguousRowIndex();
-             if (ambiguityStart != undefined)
-                 showAmbiguousRowPrompt(ambiguityStart);
-             else
-                 showConfirmationSpreadsheet();
+             parseTSV($('#spreadsheet')[0].value,function(spreadsheetRows) {
+                 buildRowInfo(spreadsheetRows, function(rows){
+                     $("#spreadsheetInput").hide();
+                     getAmbiguousRowIndex(undefined, showAmbiguousRowPrompt, showConfirmationSpreadsheet);
+                 });
+             })
          }
          function showAmbiguousRowPrompt(startingRowIdx) {
              var headersHTML = "";
@@ -308,7 +304,7 @@
              });
              $("#tabs").show();
              tabs.tabs("select", 0);
-             spreadsheetParsed(beginAutoReconciliation);
+             spreadsheetProcessed(beginAutoReconciliation);
          }
 
          $(document).ready(function() {

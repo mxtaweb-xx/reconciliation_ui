@@ -38,7 +38,7 @@ var simpleHeaders;
 ** Parsing and munging the input
 */
 
-function parseSpreadsheet(spreadsheet) {
+function parseTSV(spreadsheet, onComplete) {
     var position = 0;
     
     function parseLine() {
@@ -121,8 +121,22 @@ function parseSpreadsheet(spreadsheet) {
             position += 1;
         }
     }
-    
-    headers = parseLine();
+    var rows = [];
+    var yielder = new Yielder();
+    function parseSpreadsheet() {
+        while(spreadsheet.charAt(position) != "") {
+            rows.push(parseLine());
+            if (yielder.yield(parseSpreadsheet))
+                return;
+        }
+        onComplete(rows);
+    }
+    parseSpreadsheet();
+}
+
+function buildRowInfo(spreadsheetRows, onComplete) {
+    resetEntities();
+    headers = spreadsheetRows.shift();
     //get, or make the id column
     if (!contains(headers, "id"))
         headers.push("id");
@@ -142,10 +156,9 @@ function parseSpreadsheet(spreadsheet) {
         return true;
     });
     rows = [];
-    while(spreadsheet.charAt(position) != ""){
+    politeEach(spreadsheetRows,function(_,rowArray) {
         var rowHeaders  = headers.slice();
         var rowMqlProps = mqlProps.slice();
-        var rowArray = parseLine();
         var entity = newEntity({"/rec_ui/headers": rowHeaders,
                                 "/rec_ui/mql_props": rowMqlProps,
                                 "/rec_ui/toplevel_entity": true});
@@ -156,24 +169,7 @@ function parseSpreadsheet(spreadsheet) {
             entity[headers[i]] = [val];
         }   
         rows.push(entity);
-    }
-    return rows;
-}
-
-function combineRows() {
-    var rowIndex = undefined;
-    while(rowIndex = getAmbiguousRowIndex(rowIndex)) {
-        var mergeRow = rows[rowIndex];
-        var i;
-        for (i = rowIndex+1; i < rows.length && rows[i][headers[0]][0] == undefined;i++) {
-            for (var j = 0; j<headers.length; j++) {
-                var col = headers[j];
-                mergeRow[col].push(rows[i][col][0]);
-            }
-        }
-        //remove the rows that we've combined in
-        rows.splice(rowIndex+1, (i - rowIndex) - 1);
-    }
+    },function() {onComplete(rows);});
 }
 
 /*
@@ -181,22 +177,55 @@ function combineRows() {
 *  first column which is followed by a row without an entry in the first
 *  column.
 */
-function getAmbiguousRowIndex(from) {
+function getAmbiguousRowIndex(from, onFound, noneLeft, yielder) {
     if (from == undefined)
         from = -1;
     from++;
-
+    yielder = yielder || new Yielder();
     var startingRowIdx;
-    for(var i = from; i < rows.length; i++) {
-        if (rows[i][headers[0]][0] != "" && rows[i][headers[0]][0] != undefined)
-            startingRowIdx = i;
-        else if (startingRowIdx != undefined)
-            return startingRowIdx;
+    var i = from;
+    function searchForAmbiguity() {
+        for(;i < rows.length; i++) {
+            if (rows[i][headers[0]][0] != "" && rows[i][headers[0]][0] != undefined)
+                startingRowIdx = i;
+            else if (startingRowIdx != undefined)
+                return onFound(startingRowIdx);
+            if (yielder.yield(searchForAmbiguity))
+                return;
+        }
+        noneLeft();
     }
-    return undefined;
+    searchForAmbiguity();
 }
 
-function spreadsheetParsed(callback) {
+
+function combineRows(onComplete) {
+    var rowIndex = undefined;
+    var yielder = new Yielder();
+    
+    function doCombineRows() {
+        getAmbiguousRowIndex(rowIndex, rowCombiner, onComplete, yielder);
+    }
+    
+    function rowCombiner(ambiguousRow) {
+        rowIndex = ambiguousRow;
+        var mergeRow = rows[rowIndex];
+        var i;
+        for (i = rowIndex+1; i < rows.length && rows[i][headers[0]][0] == undefined;i++) {
+            for (var j = 0; j<headers.length; j++) {
+                var col = headers[j];
+                mergeRow[col].push(rows[i][col][0]);
+            }
+            entities[rows[i]["/rec_ui/id"]] = undefined;
+        }
+        //remove the rows that we've combined in
+        rows.splice(rowIndex+1, (i - rowIndex) - 1);
+        doCombineRows();
+    }
+    doCombineRows();
+}
+
+function spreadsheetProcessed(callback) {
     function isUnreconciled(entity) {
         if (entity["/rec_ui/is_cvt"])
             return false;

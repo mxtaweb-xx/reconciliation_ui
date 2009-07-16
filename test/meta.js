@@ -1,27 +1,51 @@
 //define and test our testing helpers
 
-function assertEq(msg, a1, a2) {
-    assertEquals(typeof a1, typeof a2);
-    if ($.isArray(a1) || $.isArray(a2)){
-        $.each([a1,a2], function(_,a){
-            assertTrue(msg + " expected an array but got " + a, $.isArray(a));
-        })
+function pass() {
+    assertTrue(true);
+}
 
-        assertEquals(msg + " lengths of arrays were different.", a1.length, a2.length);
-        for (var i = 0; i < a1.length; i++)
-            assertEq(msg, a1[i], a2[i]);
+function assertEq(msg, a1, a2) {
+    var message = areNotEq(a1,a2);
+    if (message)
+        fail(msg + " " + message);
+    else
+        pass();
+}
+
+function areNotEq(a1,a2){
+    if (a1 == a2) return;
+    if (typeof a1 != typeof a2) return "differently typed: " + a1 + " " + a2;
+    if ($.isArray(a1) || $.isArray(a2)){
+        if (!$.isArray(a1) || !$.isArray(a2))
+            return "one is an array, the other isn't: " + a1 + " " + a2;
+
+        if (a1.length != a2.length) return "lengths of arrays were different: " + a1 + " " + a2;
+        for (var i = 0; i < a1.length; i++){
+            var message = areNotEq(a1[i], a2[i]);
+            if (message)
+                return i + "th value different in arrays: " + message;
+        }
         return;
     }
     if (typeof a1 != "object")
-        return assertEquals(msg, a1, a2);
+        return "Expected " + a1 + " but got " + a2;
     
     if ("equals" in a1)
-        return assertTrue(msg, a1.equals(a2));
+        if (a1.equals(a2))
+            return;
+        else
+            return "Expected " + a1 + " but got " + a2;
     
-    for (var prop in a1)
-        assertEq(msg, a1[prop], a2[prop]);
-    for (var prop in a2)
-        assertEq(msg, a1[prop], a2[prop]);
+    for (var prop in a1){
+        var message = areNotEq(a1[prop],a2[prop]);
+        if (message)
+            return a1 + " and " + a2 + " differ in prop `" + prop + "': " + message;
+    }
+    for (var prop in a2){
+        var message = areNotEq(a1[prop],a2[prop]);
+        if (message)
+            return a1 + " and " + a2 + " differ in prop `" + prop + "': " + message;
+    }
 }
 
 

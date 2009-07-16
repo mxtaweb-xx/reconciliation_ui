@@ -30,8 +30,14 @@
 **  Misc utility functions
 */
 
-var entities = [];
-var internalIDCounter = 0;
+var entities;
+var internalIDCounter;
+function resetEntities() {
+    entities = [];
+    internalIDCounter = 0;
+}
+resetEntities();
+
 function newEntity(initialVals) {
     var result = {"/rec_ui/id":internalIDCounter++}
     entities[result["/rec_ui/id"]] = result;
@@ -264,19 +270,28 @@ function time() {
     return new Date().valueOf();
 }
 
+function Yielder() {
+    this.startTime = time();
+    this.yield = function(continueFunction) {
+        if (time() <= this.startTime + 100)
+            return false;
+        
+        info("yielding to UI thread");
+        this.startTime = time();
+        setTimeout(continueFunction, 0);
+        return true;
+    }
+}
+
 function politeEach(array, f, callback) {
+    var yielder = new Yielder();
     var index = 0;
-    var startTime = time();
     function iterate() {
         while(index < array.length) {
             f(index, array[index]);
             index++;
-            if (time() > startTime + 100){
-                info("yielding to UI thread");
-                startTime = time();
-                setTimeout(iterate, 0);
+            if (yielder.yield(iterate))
                 return;
-            }
         }
         if (callback) callback();
     }
