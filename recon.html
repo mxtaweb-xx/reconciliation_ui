@@ -44,7 +44,7 @@
             </div>
 
             <div class='selection' id='combineRows'>
-              <button onclick='combineRows(); $("#formatDisambiguation").hide(); showConfirmationSpreadsheet();'>
+              <button onclick='combineRows(function(){$("#formatDisambiguation").hide(); showConfirmationSpreadsheet();});'>
                 Combine rows missing the first column
               </button>
               <table>
