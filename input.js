@@ -259,16 +259,18 @@ function fetchMQLPropMetadata(callback) {
             "reverse_property" : null,
             "master_property"  : null,
             "type" : "/type/property",
+            "name":null,
             "id" : prop
         }
     }
     var envelope = {};
-    $.each(mqlProps, function(i, mqlProp) {
+    var props = filter(headers,function(header){return header.charAt(0) === "/"})
+    $.each(props, function(i, mqlProp) {
         $.each(mqlProp.split(":"), function(i, simpleProp) {
+            if (simpleProp == "id") return;
             envelope[simpleProp.replace(/\//g,'Z')] = {"query": getQuery(simpleProp)};
         })
     })
-    log(envelope);
     function handler(results) {
         handleMQLPropMetadata(results);
         callback();
@@ -278,9 +280,11 @@ function fetchMQLPropMetadata(callback) {
 
 function handleMQLPropMetadata(results) {
     assert(results.code == "/api/status/ok", results);    
-    $.each(mqlProps, function(_,complexProp){
+    var props = filter(headers,function(header){return header.charAt(0) === "/"})
+    $.each(props, function(_,complexProp){
         var partsSoFar = [];
         $.each(complexProp.split(":"), function(_, mqlProp) {
+            if (mqlProp == "id") return;
             var result = results[mqlProp.replace(/\//g,'Z')];
             partsSoFar.push(mqlProp);
             if (result.code != "/api/status/ok"){

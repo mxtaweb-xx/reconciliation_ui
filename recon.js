@@ -59,9 +59,10 @@ function constructReconciliationQuery(entity) {
     function constructQueryPart(value) {
         if (value.id != undefined && value.id != "" && value.id != "None")
             return {"id":value.id, "name":value["/type/object/name"]}
-        return value["/type/object/name"] || value;
+        if (value['/rec_ui/id'] !== undefined)
+            return value["/type/object/name"];
+        return value;
     }
-
     var query = {}
     var headers = entity["/rec_ui/headers"];
     for (var i = 0; i < headers.length; i++) {
@@ -76,10 +77,9 @@ function constructReconciliationQuery(entity) {
                 slot[prop][j] = constructQueryPart(value);
                 return;
             }
-            
             slot[parts[0]]    = slot[parts[0]]    || [];
             slot[parts[0]][j] = slot[parts[0]][j] || {};
-            slot = slot[parts[0]][j]
+            slot = slot[parts[0]][j];
             $.each(parts.slice(1,parts.length-1), function(k,part) {
                 slot[part] = slot[part] || {};
                 slot = slot[part];
@@ -182,7 +182,7 @@ function renderReconChoices(entity) {
     $('.reconciliationCandidates table tbody tr:odd', template).addClass('odd');
     $('.reconciliationCandidates table tbody tr:even', template).addClass('even');
     $(".find_topic", template)
-        .suggest({type:entity['/type/object/type'],
+        .suggest({type:entity['/type/object/type'].id,
                   type_strict:"should",
                   flyout:true})
         .bind("fb-select", function(e, data) { 
@@ -247,7 +247,7 @@ function fetchMqlProps(entity) {
             $.each(parts.slice(0,parts.length-1), function(_, part) {
                 slot[part] = slot[part] || [{optional:true}];
                 slot = slot[part][0];
-            })
+            });
             var lastPart = parts[parts.length-1];
             if (isValueProperty(lastPart))
                 slot[lastPart] = [];
