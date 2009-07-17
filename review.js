@@ -4,7 +4,7 @@ function onDisplayRenderScreen() {
 
 function onHideRenderScreen() {
     if (renderYielder)
-        renderYielder.dispose();
+        renderYielder.cancel();
 }
 
 var renderYielder;
