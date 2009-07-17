@@ -182,7 +182,7 @@ function renderReconChoices(entity) {
     $('.reconciliationCandidates table tbody tr:odd', template).addClass('odd');
     $('.reconciliationCandidates table tbody tr:even', template).addClass('even');
     $(".find_topic", template)
-        .suggest({type:entity['/type/object/type'].id,
+        .suggest({type:entity['/type/object/type'],
                   type_strict:"should",
                   flyout:true})
         .bind("fb-select", function(e, data) { 

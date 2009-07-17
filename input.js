@@ -137,13 +137,9 @@ function parseTSV(spreadsheet, onComplete) {
 function buildRowInfo(spreadsheetRows, onComplete) {
     resetEntities();
     headers = spreadsheetRows.shift();
-    //get, or make the id column
+    //make the id column if it doesn't exist
     if (!contains(headers, "id"))
         headers.push("id");
-    
-    var part = partition(headers, function(header) {return charIn(header,":");});
-    complexHeaders = part[0];
-    simpleHeaders = part[1];
     
     mqlProps = filter(headers, function(header) {
         if (header.charAt(0) !== "/")
@@ -264,8 +260,7 @@ function fetchMQLPropMetadata(callback) {
         }
     }
     var envelope = {};
-    var props = filter(headers,function(header){return header.charAt(0) === "/"})
-    $.each(props, function(i, mqlProp) {
+    $.each(getProperties(headers), function(i, mqlProp) {
         $.each(mqlProp.split(":"), function(i, simpleProp) {
             if (simpleProp == "id") return;
             envelope[simpleProp.replace(/\//g,'Z')] = {"query": getQuery(simpleProp)};
@@ -280,8 +275,7 @@ function fetchMQLPropMetadata(callback) {
 
 function handleMQLPropMetadata(results) {
     assert(results.code == "/api/status/ok", results);    
-    var props = filter(headers,function(header){return header.charAt(0) === "/"})
-    $.each(props, function(_,complexProp){
+    $.each(getProperties(headers), function(_,complexProp){
         var partsSoFar = [];
         $.each(complexProp.split(":"), function(_, mqlProp) {
             if (mqlProp == "id") return;
@@ -329,8 +323,9 @@ function objectifyRows(onComplete) {
                     newProp[i] = objectifyRowProperty(row[prop][i])
             row[prop] = newProp
         }
-        $.each(complexHeaders, function(_,complexHeader) {
+        $.each(filter(headers, function(h){return charIn(h,":");}), function(_,complexHeader) {
             var valueArray = row[complexHeader];
+            if (valueArray === undefined) return;
             var parts = complexHeader.split(":");
             var slot;
             function cvtEntity(meta, parent) {

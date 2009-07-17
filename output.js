@@ -155,7 +155,7 @@ function getTriples(rows, callback) {
         if (!subject || !isValidID(subject.id) || subject['/rec_ui/is_cvt'])
             return;
         $.each($.makeArray(subject['/type/object/type']), function(_, type){
-            triples.push({s:getID(subject), p:"/type/object/type",o:type.id});
+            triples.push({s:getID(subject), p:"/type/object/type",o:type});
         });
         if (subject.id === "None"){
             $.each($.makeArray(subject["/type/object/name"]), function(_, name) {

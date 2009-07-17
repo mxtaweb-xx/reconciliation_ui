@@ -95,10 +95,7 @@ function contains(array, value) {
 }
 
 function charIn(string, chr) {
-    for(var i = 0; i < string.length; i++)
-        if (string.charAt(i) === chr)
-            return true;
-    return false;
+    return string.indexOf(chr) !== -1;
 }
 
 function textValue(value) {
@@ -308,6 +305,19 @@ function politeMap(array, f, callback, yielder) {
     politeEach(array, function(index, value) {
         result[index] = f(index,value);
     }, function() {callback(result);}, yielder);
+}
+
+function getProperties(headers) {
+    return filter(headers, function(header) {
+        if (header.charAt(0) !== "/")
+            return false;
+        var invalidList = ["/type/object/name","/type/object/type","/type/object/id"];
+        for (var i = 0; i<invalidList.length; i++){
+            if (header.match(invalidList[i]))
+                return false;
+        }
+        return true;
+    })
 }
 
 /*
