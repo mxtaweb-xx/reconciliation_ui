@@ -126,7 +126,7 @@ function parseTSV(spreadsheet, onComplete) {
     function parseSpreadsheet() {
         while(spreadsheet.charAt(position) != "") {
             rows.push(parseLine());
-            if (yielder.yield(parseSpreadsheet))
+            if (yielder.shouldYield(parseSpreadsheet))
                 return;
         }
         onComplete(rows);
@@ -190,7 +190,7 @@ function getAmbiguousRowIndex(from, onFound, noneLeft, yielder) {
                 startingRowIdx = i;
             else if (startingRowIdx != undefined)
                 return onFound(startingRowIdx);
-            if (yielder.yield(searchForAmbiguity))
+            if (yielder.shouldYield(searchForAmbiguity))
                 return;
         }
         noneLeft();

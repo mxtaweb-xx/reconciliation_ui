@@ -297,7 +297,7 @@ function politeEach(array, f, callback, yielder) {
         while(index < array.length) {
             f(index, array[index]);
             index++;
-            if (yielder.yield(iterate))
+            if (yielder.shouldYield(iterate))
                 return;
         }
         if (callback) callback();

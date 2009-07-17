@@ -2813,4 +2813,4 @@ var complexData =
 "\t\t\t\tAdam Stern\t\n" + 
 "\t\t\t\tSean Stern\t\n" + 
 "\t\t\t\tKeith Morris\t\n" + 
-"\t\t\t\tIan MacKaye\t\n"
+"\t\t\t\tIan MacKaye\t\n";
