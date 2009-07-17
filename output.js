@@ -152,7 +152,7 @@ function getTriples(rows, callback) {
         return result;
     }
     politeEach(entities, function(_,subject) {
-        if (!isValidID(subject.id) || subject['/rec_ui/is_cvt'])
+        if (!subject || !isValidID(subject.id) || subject['/rec_ui/is_cvt'])
             return;
         $.each($.makeArray(subject['/type/object/type']), function(_, type){
             triples.push({s:getID(subject), p:"/type/object/type",o:type.id});

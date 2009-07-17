@@ -159,7 +159,7 @@ function buildRowInfo(spreadsheetRows, onComplete) {
     politeEach(spreadsheetRows,function(_,rowArray) {
         var rowHeaders  = headers.slice();
         var rowMqlProps = mqlProps.slice();
-        var entity = newEntity({"/rec_ui/headers": rowHeaders,
+        var entity = new Entity({"/rec_ui/headers": rowHeaders,
                                 "/rec_ui/mql_props": rowMqlProps,
                                 "/rec_ui/toplevel_entity": true});
         for (var i=0; i < headers.length; i++){
@@ -307,7 +307,7 @@ function objectifyRows(onComplete) {
     politeEach(rows, function(_,row) {
         for (var prop in row) {
             function objectifyRowProperty(value) {
-                var result = newEntity({'/type/object/name':value,
+                var result = new Entity({'/type/object/name':value,
                               '/type/object/type':meta.expected_type.id,
                               '/rec_ui/headers': ['/type/object/name','/type/object/type'],
                               '/rec_ui/mql_props': [],
@@ -334,7 +334,7 @@ function objectifyRows(onComplete) {
             var parts = complexHeader.split(":");
             var slot;
             function cvtEntity(meta, parent) {
-                var cvt = newEntity({"/type/object/type":meta.expected_type.id,
+                var cvt = new Entity({"/type/object/type":meta.expected_type.id,
                                      "/rec_ui/is_cvt":true,
                                      "/rec_ui/parent":parent,
                                      "/rec_ui/mql_props" :[],
@@ -366,7 +366,7 @@ function objectifyRows(onComplete) {
                 if (lastPart === "id" || isValueProperty(lastPart))
                     slot[lastPart] = value;
                 else {
-                    var new_entity = newEntity({"/type/object/type":meta.expected_type.id,
+                    var new_entity = new Entity({"/type/object/type":meta.expected_type.id,
                                                 "/type/object/name":value,
                                                 '/rec_ui/headers': ['/type/object/name','/type/object/type'],
                                                 '/rec_ui/mql_props': [],

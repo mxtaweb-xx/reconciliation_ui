@@ -15,6 +15,7 @@ function renderReviews() {
     var skippedTemplate = $(".templates .reviewSkippedTemplate");
     var reconciledTemplate = $(".templates .reviewReconciledTemplate");
     politeEach(entities, function(idx,entity){ 
+        if (!entity) return;
         if (entity["/rec_ui/is_cvt"] || null == entity.id || $.isArray(entity.id))
             return;
 

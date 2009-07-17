@@ -68,7 +68,7 @@ function constructReconciliationQuery(entity) {
     for (var i = 0; i < headers.length; i++) {
         var prop = headers[i];
         var parts = prop.split(":");
-        $.each($.makeArray(getChainedProperty(entity,prop)),function(j, value) {
+        $.each($.makeArray(entity.getChainedProperty(prop)),function(j, value) {
             var slot = query;
             if (value == undefined || value == "")
                 return;
@@ -167,7 +167,7 @@ function renderReconChoices(entity) {
     var currentRecord = $(".recordVals",template);
     for(var i = 0; i < headers.length; i++) {
         currentRecord.append(node("label", headers[i] + ":", {"for":idToClass(headers[i])}));
-        currentRecord.append(node("div").append(displayValue(getChainedProperty(entity,headers[i]))));
+        currentRecord.append(node("div").append(displayValue(entity.getChainedProperty(headers[i]))));
     }
     
     var tableHeader = $(".reconciliationCandidates table thead", template).empty();
