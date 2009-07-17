@@ -128,7 +128,7 @@ function displayValue(value) {
             var overflowContainer = node("div", {"class":"overflowContainer"}).appendTo(result);
             for (var i = overflowCutoff; i < displayValues.length; i++)
                 overflowContainer.append(displayValues[i]).append("<br>");
-            var showMoreLink = node("a","More &darr;",{"class":"expandOverflow",onclick:function(){overflowContainer.show();showMoreLink.hide();}}).appendTo(result);
+            var showMoreLink = node("a","More &darr;",{"class":"expandOverflow",onclick:function(){showMoreLink.slideUp();overflowContainer.slideDown();}}).appendTo(result);
         }
         else
             for (var i = 0; i < value.length; i++)
