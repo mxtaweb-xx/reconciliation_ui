@@ -198,15 +198,18 @@ function renderReconChoices(entity) {
     $(".otherSelection", template).click(function() {handleReconChoice(entity, this.name)});
     
     $(".moreButton",template).click(function() {
-        $(".loadingMoreCandidates", template).show();
+        $(".loadingMoreCandidates", template).fadeIn();
         getCandidates(entity, function() {
+            $(".loadingMoreCandidates", template).hide();
+            if (entity.reconResults.length <= numCandidates)
+                return $(".moreButton",template).fadeOut();
             for (var i = numCandidates; i < entity.reconResults.length; i++){
                 var candidate = renderCandidate(entity.reconResults[i], mqlProps, entity).hide().appendTo(tableBody);
                 candidate.fadeIn();
                 fetchMqlProps(entity.reconResults[i], entity);
             }
             updateCandidates();
-            $(".loadingMoreCandidates", template).hide();
+            
         });
     });
     template.insertAfter("#manualReconcileTemplate")
