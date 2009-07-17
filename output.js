@@ -189,23 +189,3 @@ function getTriples(rows, callback) {
         });
     }, function() {callback(triples)}, tripleGetterYielder);
 }
-
-function checkLogin() {
-    $(".uploadLogin").hide();
-    $(".uploadForm").hide();
-    $.getJSON(triplewriter_service + "check_login?jsonp=?",{},function(data) {
-        info(data);
-        if (!data.status || !data.status.code)
-            error(data);
-        else if (data.status.code === 200){
-            $(".uploadLogin").hide();
-            $(".uploadForm").show();
-        }
-        else if (data.status.code === 401){
-            $(".uploadLogin").show();
-            $(".uploadForm").hide();
-        }
-        else
-            error(data);
-    })
-}
