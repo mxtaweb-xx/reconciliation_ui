@@ -91,10 +91,7 @@ function idToClass(idName) {
 
 //Is value in array?
 function contains(array, value) {
-    for(var i = 0; i < array.length; i++)
-        if (array[i] == value)
-            return true;
-    return false;
+    return $.inArray(value, array) !== -1;
 }
 
 function charIn(string, chr) {
@@ -208,7 +205,7 @@ function numProperties(obj) {
 /* Returns a copy of the array with those elements of that
   don't satisfy the predicate filtered out*/
 function filter(array, predicate) {
-    return partition(array, predicate)[0];
+    return $.grep(array, predicate);
 }
 
 /* Returns two new arrays, the first with those elements that satisfy the 
