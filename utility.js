@@ -265,28 +265,6 @@ function unique(array) {
     return result;
 }
 
-function politeEach(array, f, callback, yielder) {
-    yielder = yielder || new Yielder();
-    var index = 0;
-    function iterate() {
-        while(index < array.length) {
-            f(index, array[index]);
-            index++;
-            if (yielder.shouldYield(iterate))
-                return;
-        }
-        if (callback) callback();
-    }
-    iterate();
-}
-
-function politeMap(array, f, callback, yielder) {
-    yielder = yielder || new Yielder();
-    var result = [];
-    politeEach(array, function(index, value) {
-        result[index] = f(index,value);
-    }, function() {callback(result);}, yielder);
-}
 
 function getProperties(headers) {
     return filter(headers, function(header) {
