@@ -3,7 +3,7 @@ var freebase = (function() {
     var miniTopicFloaterEl = $("#miniTopicFloater");
     function miniTopicFloater(element, id) {
         element.bind("hover",function() {
-            miniTopicFloaterEl.empty().freebaseMiniTopic(id).show();
+            miniTopicFloaterEl.empty().freebaseMiniTopic(id, function(){miniTopicFloaterEl.show()});
         })
         element.bind("hoverend", function() {
             miniTopicFloaterEl.hide();
