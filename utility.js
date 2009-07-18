@@ -131,13 +131,11 @@ function displayValue(value) {
     }
     if (value == undefined || value == null)
         return "";
+    if (value.displayValue)
+        return value.displayValue()
     if (value.id != undefined && value.id != "None")
-        return miniTopicFloater($(freebaseLink(value.id, textValue(value["/type/object/name"] || value.name))), value.id);
+        return freebase.link(value.name,value.id);
     return textValue(value);
-}
-
-function freebaseLink(id, text) {
-    return "<a target='_blank' href='"+freebase_url+"/view"+id+"'>" + text + "</a>"
 }
 
 function addColumnRecCases(entity) {
@@ -252,23 +250,6 @@ function getChainedProperty(entity, prop) {
     });
     if (slots === []) return undefined;
     return slots;
-}
-
-var miniTopicFloaterEl = $("#miniTopicFloater");
-function miniTopicFloater(element, id) {
-    element.bind("hover",function() {
-        miniTopicFloaterEl.empty().freebaseMiniTopic(id).show();
-    })
-    element.bind("hoverend", function() {
-        miniTopicFloaterEl.hide();
-    })
-    element.mousemove(function(e){
-        miniTopicFloaterEl.css({
-            top: (e.pageY + 15) + "px",
-            left: (e.pageX + 15) + "px"
-        });
-    });
-    return element;
 }
 
 function unique(array) {

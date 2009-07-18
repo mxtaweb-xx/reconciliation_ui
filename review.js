@@ -37,7 +37,7 @@ function renderReviews() {
         }
         freebaseName = "" + (freebaseName || entity.id);
         
-        $(".freebaseName", template).html(freebaseLink(entity.id, freebaseName));
+        $(".freebaseName", template).html(entity.freebaseLink(freebaseName));
         if (freebaseName && textValue(entity).toLowerCase() === freebaseName.toLowerCase())
             $(".freebaseName", template).addClass("identicalMatch");
             

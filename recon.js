@@ -216,14 +216,7 @@ function renderCandidate(result, mqlProps, entity) {
          node("img",{src:freebase_url + "/api/trans/image_thumb/"+result['id']+"?maxwidth=100&maxheight=100"})
     ).appendTo(tableRow);
     
-    var names = node("td").appendTo(tableRow);
-    for(var j = 0; j < result["name"].length; j++) {
-        var name = node("a",result["name"][j], {target:"_blank", href:url});
-        miniTopicFloater(name, result['id']);
-        names.append(name).append(node("br"));
-    }
-
-    
+    tableRow.append(node("td",displayValue(result)));
     tableRow.append(node("td",displayValue(result.type)));
     
     for(var j = 0; j < mqlProps.length; j++)

@@ -18,3 +18,14 @@ function Entity(initialVals) {
 Entity.prototype.getChainedProperty = function(prop) {
     return getChainedProperty(this,prop);
 }
+
+Entity.prototype.freebaseLink = function(linkText) {
+    linkText = linkText || this.name || this.id;
+    return freebase.link(linkText,this.id);
+}
+
+Entity.prototype.displayValue = function() {
+    if (!this.id)
+        return displayValue(this['/type/object/name'] || this.id);
+    return this.freebaseLink();
+};
