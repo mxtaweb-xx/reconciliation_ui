@@ -265,6 +265,19 @@ function unique(array) {
     return result;
 }
 
+function concat(arrays) {
+    var result = [];
+    $.each(arrays, function(_,array) {
+        result = result.concat(array);
+    });
+    return result;
+}
+
+function getMqlProperties(headers) {
+    return filter(getProperties(headers), function(header) {
+        return !header.match(/(^|:)id$/)
+    });
+}
 
 function getProperties(headers) {
     return filter(headers, function(header) {

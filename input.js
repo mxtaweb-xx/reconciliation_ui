@@ -140,32 +140,31 @@ function buildRowInfo(spreadsheetRows, onComplete) {
     //make the id column if it doesn't exist
     if (!contains(headers, "id"))
         headers.push("id");
-    
-    mqlProps = filter(headers, function(header) {
-        if (header.charAt(0) !== "/")
-            return false;
-        var invalidList = ["/type/object/name","/type/object/type","/type/object/id",/(^|:)id$/];
-        for (var i = 0; i<invalidList.length; i++){
-            if (header.match(invalidList[i]))
-                return false;
-        }
-        return true;
+    mqlProps = getMqlProperties(headers);
+    fetchPropMetadata(buildRows, function(errorProps) {
+        error("Can't find these mqlProps:")
+        error(errorProps);
+        mqlProps = arrayDifference(mqlProps, errorProps);
+        buildRows();
     });
-    rows = [];
-    politeEach(spreadsheetRows,function(_,rowArray) {
-        var rowHeaders  = headers.slice();
-        var rowMqlProps = mqlProps.slice();
-        var entity = new Entity({"/rec_ui/headers": rowHeaders,
-                                "/rec_ui/mql_props": rowMqlProps,
-                                "/rec_ui/toplevel_entity": true});
-        for (var i=0; i < headers.length; i++){
-            var val = rowArray[i];
-            if (rowArray[i] === "")
-                val = undefined;
-            entity[headers[i]] = [val];
-        }   
-        rows.push(entity);
-    },function() {onComplete(rows);});
+    
+    function buildRows() {
+        rows = [];
+        politeEach(spreadsheetRows,function(_,rowArray) {
+            var rowHeaders  = headers.slice();
+            var rowMqlProps = mqlProps.slice();
+            var entity = new Entity({"/rec_ui/headers": rowHeaders,
+                                    "/rec_ui/mql_props": rowMqlProps,
+                                    "/rec_ui/toplevel_entity": true});
+            for (var i=0; i < headers.length; i++){
+                var val = rowArray[i];
+                if (rowArray[i] === "")
+                    val = undefined;
+                entity[headers[i]] = [val];
+            }   
+            rows.push(entity);
+        },function() {onComplete(rows);});
+    }
 }
 
 /*
@@ -227,25 +226,19 @@ function spreadsheetProcessed(callback) {
             return false;
         return contains([undefined,null,"indeterminate",""], entity.id);
     }
-    function new_callback() {
-        objectifyRows(function() {
-            totalRecords = rows.length;
-            var rec_partition = partition(rows,isUnreconciled);
-            automaticQueue = rec_partition[0];
-            $.each(rec_partition[1],function(_,reconciled_row){
-                addColumnRecCases(reconciled_row);
-            });
-            $(".initialLoadingMessage").hide();
-            callback();
+    objectifyRows(function() {
+        totalRecords = rows.length;
+        var rec_partition = partition(rows,isUnreconciled);
+        automaticQueue = rec_partition[0];
+        $.each(rec_partition[1],function(_,reconciled_row){
+            addColumnRecCases(reconciled_row);
         });
-    }
-    if (mqlProps.length === 0)
-        new_callback();
-    else
-        fetchMQLPropMetadata(new_callback);
+        $(".initialLoadingMessage").hide();
+        callback();
+    });
 }
 
-function fetchMQLPropMetadata(callback) {
+function fetchPropMetadata(onComplete, onError) {
     function getQuery(prop) {
         return {
             "expected_type" : {
@@ -267,22 +260,25 @@ function fetchMQLPropMetadata(callback) {
         })
     })
     function handler(results) {
-        handleMQLPropMetadata(results);
-        callback();
+        var errorProps = handleMQLPropMetadata(results);
+        if (errorProps.length > 0)
+            return onError(errorProps);
+        onComplete();
     }
     $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {queries:JSON.stringify(envelope)}, handler);
 }
 
 function handleMQLPropMetadata(results) {
-    assert(results.code == "/api/status/ok", results);    
+    assert(results.code == "/api/status/ok", results);
+    var errorProps = [];
     $.each(getProperties(headers), function(_,complexProp){
         var partsSoFar = [];
         $.each(complexProp.split(":"), function(_, mqlProp) {
             if (mqlProp == "id") return;
             var result = results[mqlProp.replace(/\//g,'Z')];
             partsSoFar.push(mqlProp);
-            if (result.code != "/api/status/ok"){
-                error(result);
+            if (result.code != "/api/status/ok" || result.result === null){
+                errorProps.push(mqlProp)
                 return
             }
             result = result.result;
@@ -294,7 +290,8 @@ function handleMQLPropMetadata(results) {
             if (result.expected_type && mqlMetadata[result.expected_type.id] == undefined)
                 mqlMetadata[result.expected_type.id] = {inverse_property: result.id};
         });
-    })
+    });
+    return errorProps;
 }
 
 function objectifyRows(onComplete) {
