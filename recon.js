@@ -263,7 +263,7 @@ function fetchMqlProps(reconResult, entity) {
         //don't show annoying loading symbols indefinitely if there's an error
         $("#manualReconcile" + entity["/rec_ui/id"] + " .replaceme").empty();
     }
-    $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {query:JSON.stringify(envelope)}, handler);
+    freebase.mqlRead(envelope,handler);
 }
 
 function fillInMQLProps(entity, mqlResult) {
@@ -299,7 +299,7 @@ function handleReconChoice(entity,freebaseId) {
 
 function canonicalizeFreebaseId(entity) {
     var envelope = {query:{"myId:id":entity.id, "id":null}}
-    $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {query:JSON.stringify(envelope)}, function(results){
+    freebase.mqlRead(envelope, function(results){
         if (results && results.result && results.result.id)
             entity.id = results.result.id
     });

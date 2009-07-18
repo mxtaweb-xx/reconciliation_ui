@@ -270,7 +270,7 @@ function fetchMQLPropMetadata(callback) {
         handleMQLPropMetadata(results);
         callback();
     }
-    $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {queries:JSON.stringify(envelope)}, handler);
+    freebase.mqlRead(envelope, handler);
 }
 
 function handleMQLPropMetadata(results) {
