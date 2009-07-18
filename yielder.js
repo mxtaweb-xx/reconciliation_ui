@@ -19,8 +19,7 @@ function Yielder() {
     };
 }
 
-
-function politeEach(array, f, callback, yielder) {
+function politeEach(array, f, onComplete, yielder) {
     yielder = yielder || new Yielder();
     var index = 0;
     function iterate() {
@@ -30,15 +29,15 @@ function politeEach(array, f, callback, yielder) {
             if (yielder.shouldYield(iterate))
                 return;
         }
-        if (callback) callback();
+        if (onComplete) onComplete();
     }
     iterate();
 }
 
-function politeMap(array, f, callback, yielder) {
+function politeMap(array, f, onComplete, yielder) {
     yielder = yielder || new Yielder();
     var result = [];
     politeEach(array, function(index, value) {
         result[index] = f(index,value);
-    }, function() {callback(result);}, yielder);
+    }, function() {onComplete(result);}, yielder);
 }
