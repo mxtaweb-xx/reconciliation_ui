@@ -37,9 +37,9 @@ function onDisplayOutputScreen() {
 }
 function onHideOutputScreen() {
     if (spreadsheetRendererYielder)
-        spreadsheetRendererYielder.dispose();
+        spreadsheetRendererYielder.cancel();
     if (tripleGetterYielder)
-        tripleGetterYielder.dispose();
+        tripleGetterYielder.cancel();
 }
 
 var triplewriter_service = "http://spreadsheet.rictic.user.dev.freebaseapps.com/"

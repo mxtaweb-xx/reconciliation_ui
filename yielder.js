@@ -1,4 +1,3 @@
-
 function time() {
     return new Date().valueOf();
 }
@@ -6,9 +5,8 @@ function time() {
 function Yielder() {
     this.startTime = time();
     this.shouldYield = function(continueFunction){
-        if (time() <= this.startTime + 100) {
+        if (time() <= this.startTime + 100)
             return false;
-        }
         
         info("yielding to UI thread");
         this.startTime = time();
@@ -16,11 +14,7 @@ function Yielder() {
         return true;
     };
     this.cancel = function(){
-        if (this.nextAction) {
+        if (this.nextAction)
             clearTimeout(this.nextAction);
-        }
-    };
-    this.dispose = function(){
-        this.cancel();
     };
 }

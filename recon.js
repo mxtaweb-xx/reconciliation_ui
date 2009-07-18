@@ -176,11 +176,17 @@ function renderReconChoices(entity) {
         tableHeader.append(node("th",columnHeaders[i]));
     
     var tableBody = $(".reconciliationCandidates table tbody", template).empty();
-    for (var i = 0; i < entity.reconResults.length; i++)
+    for (var i = 0; i < entity.reconResults.length; i++){
         tableBody.append(renderCandidate(entity.reconResults[i], mqlProps, entity));
+        fetchMqlProps(entity.reconResults[i], entity);
+    }
 
-    $('.reconciliationCandidates table tbody tr:odd', template).addClass('odd');
-    $('.reconciliationCandidates table tbody tr:even', template).addClass('even');
+    function updateCandidates() {
+        $('.reconciliationCandidates table tbody tr:odd', template).addClass('odd');
+        $('.reconciliationCandidates table tbody tr:even', template).addClass('even');
+        numCandidates = entity.reconResults.length;
+    }
+    updateCandidates();
     $(".find_topic", template)
         .suggest({type:entity['/type/object/type'],
                   type_strict:"should",
@@ -190,16 +196,23 @@ function renderReconChoices(entity) {
           handleReconChoice(entity, data.id);
         });
     $(".otherSelection", template).click(function() {handleReconChoice(entity, this.name)});
+    
     $(".moreButton",template).click(function() {
-        $(".loadingMoreCandidates", template).show();
+        $(".loadingMoreCandidates", template).fadeIn();
         getCandidates(entity, function() {
-            $("#manualReconcile" + entity["/rec_ui/id"]).remove();
-            displayReconChoices(entity["/rec_ui/id"]);
-        })
-    })
+            $(".loadingMoreCandidates", template).hide();
+            if (entity.reconResults.length <= numCandidates)
+                return $(".moreButton",template).fadeOut();
+            for (var i = numCandidates; i < entity.reconResults.length; i++){
+                var candidate = renderCandidate(entity.reconResults[i], mqlProps, entity).hide().appendTo(tableBody);
+                candidate.fadeIn();
+                fetchMqlProps(entity.reconResults[i], entity);
+            }
+            updateCandidates();
+            
+        });
+    });
     template.insertAfter("#manualReconcileTemplate")
-
-    fetchMqlProps(entity);
 }
 
 function renderCandidate(result, mqlProps, entity) {
@@ -228,33 +241,29 @@ function renderCandidate(result, mqlProps, entity) {
     return tableRow;
 }
 
-function fetchMqlProps(entity) {
+function fetchMqlProps(reconResult, entity) {
     var mqlProps = entity["/rec_ui/mql_props"];
-    if (mqlProps.length === 0) return;
-    for (var i = 0; i < entity.reconResults.length; i++) {
-        var result = entity.reconResults[i];
-        var query = {"id":result["id"]};
-        $.each(mqlProps, function(_, prop) {
-            var slot = query;
-            var parts = prop.split(":");
-            $.each(parts.slice(0,parts.length-1), function(_, part) {
-                slot[part] = slot[part] || [{optional:true}];
-                slot = slot[part][0];
-            });
-            var lastPart = parts[parts.length-1];
-            if (isValueProperty(lastPart))
-                slot[lastPart] = [];
-            else
-                slot[lastPart] = [{"name":null,"id":null,"optional":true}];
-        })
-        var envelope = {query:query};
-        function handler(results) {
-            fillInMQLProps(entity, results);
-            //don't show annoying loading symbols indefinitely if there's an error
-            $("#manualReconcile" + entity["/rec_ui/id"] + " .replaceme").empty();
-        }
-        $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {query:JSON.stringify(envelope)}, handler);
+    var query = {"id":reconResult["id"]};
+    $.each(mqlProps, function(_, prop) {
+        var slot = query;
+        var parts = prop.split(":");
+        $.each(parts.slice(0,parts.length-1), function(_, part) {
+            slot[part] = slot[part] || [{optional:true}];
+            slot = slot[part][0];
+        });
+        var lastPart = parts[parts.length-1];
+        if (isValueProperty(lastPart))
+            slot[lastPart] = [];
+        else
+            slot[lastPart] = [{"name":null,"id":null,"optional":true}];
+    })
+    var envelope = {query:query};
+    function handler(results) {
+        fillInMQLProps(entity, results);
+        //don't show annoying loading symbols indefinitely if there's an error
+        $("#manualReconcile" + entity["/rec_ui/id"] + " .replaceme").empty();
     }
+    $.getJSON(freebase_url + "/api/service/mqlread?callback=?&", {query:JSON.stringify(envelope)}, handler);
 }
 
 function fillInMQLProps(entity, mqlResult) {
