@@ -55,7 +55,7 @@ function autoReconcile() {
     getCandidates(automaticQueue[0], autoReconcileResults);
 }
 
-function constructReconciliationQuery(entity) {
+function constructReconciliationQuery(entity, typeless) {
     function constructQueryPart(value) {
         if (value.id != undefined && value.id != "" && value.id != "None")
             return {"id":value.id, "name":value["/type/object/name"]}
@@ -88,18 +88,25 @@ function constructReconciliationQuery(entity) {
             slot[lastPart] = constructQueryPart(value);
         })        
     }
+    if (typeless || !query['/type/object/type'])
+        query['/type/object/type'] = ['/common/topic'];
     return query;
 }
 
-function getCandidates(entity, callback) {
+function getCandidates(entity, callback,typeless) {
     function handler(results) {
         entity.reconResults = results; 
         callback(entity);
     }
-    var limit = 4;
+    var defaultLimit = 4;
+    var limit = defaultLimit;
     if (entity.reconResults)
         limit = entity.reconResults.length * 2;
-    var query = constructReconciliationQuery(entity);
+    if (!entity.typelessRecon && typeless){
+        entity.typelessRecon = true;
+        limit = defaultLimit;
+    }
+    var query = constructReconciliationQuery(entity,typeless);
     $.getJSON(reconciliation_url + "query?jsonp=?", {q:JSON.stringify(query), limit:limit}, handler);
 }
 
@@ -107,6 +114,8 @@ function autoReconcileResults(entity) {
     automaticQueue.shift();
     // no results, set to None:
     if(entity.reconResults.length == 0) {
+        if (!entity.typelessRecon)
+            getCandidates(entity,autoReconcileResults,true);
         entity["id"] = "None";
         warn("No candidates found for the object:");
         warn(entity);
