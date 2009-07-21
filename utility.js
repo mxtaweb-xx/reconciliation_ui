@@ -133,8 +133,11 @@ function displayValue(value) {
         return "";
     if (value.displayValue)
         return value.displayValue()
-    if (value.id != undefined && value.id != "None")
+    if (value.id != undefined && value.id != "None"){
+        if ($.isArray(value.name))
+            return displayValue($.map($.makeArray(value.name),function(name){return {name:name,id:value.id};}));
         return freebase.link(value.name,value.id);
+    }
     return textValue(value);
 }
 
