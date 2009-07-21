@@ -44,7 +44,7 @@
             </div>
 
             <div class='selection' id='combineRows'>
-              <button onclick='combineRows(function(){$("#formatDisambiguation").hide(); showConfirmationSpreadsheet();});'>
+              <button onclick='doCombineRows();'>
                 Combine rows missing the first column
               </button>
               <table>
@@ -216,10 +216,18 @@
      
      <script type="text/javascript" language="javascript" charset="utf-8">
          function handleNewSpreadsheet() {
+             $("button").attr("disabled","disabled");
              parseTSV($('#spreadsheet')[0].value,function(spreadsheetRows) {
                  buildRowInfo(spreadsheetRows, function(rows){
-                     $("#spreadsheetInput").hide();
-                     getAmbiguousRowIndex(undefined, showAmbiguousRowPrompt, showConfirmationSpreadsheet);
+                     function afterwards(f){
+                         return function(a) {
+                             $("#spreadsheetInput").hide();
+                             $("button").removeAttr("disabled");
+                             f(a);
+                         }
+                     };
+
+                     getAmbiguousRowIndex(undefined, afterwards(showAmbiguousRowPrompt), afterwards(showConfirmationSpreadsheet));
                  });
              });
          }
@@ -267,6 +275,14 @@
              $('#formatDisambiguation table tbody tr:odd').addClass('odd');
              $('#formatDisambiguation table tbody tr:even').addClass('even');
              $("#formatDisambiguation").show();
+         }
+         function doCombineRows() {
+             $("button").attr("disabled","disabled");
+             combineRows(function(){
+                 $("#formatDisambiguation").hide(); 
+                 $("button").removeAttr("disabled");
+                 showConfirmationSpreadsheet();
+             });
          }
          function showConfirmationSpreadsheet() {
              var spreadSheetData = {"aoColumns":[], "aaData":[]};
